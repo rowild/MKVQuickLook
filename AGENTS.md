@@ -2,6 +2,31 @@
 
 This file defines mandatory working rules for agents operating in this repository.
 
+## EXTREMELY IMPORTANT - MUST-OBEY RULE
+
+Before giving any answer, proposing any fix, or claiming that a problem is solved, the agent must stop and ask itself:
+
+`Did I really think through everything?`
+
+This question must be answered honestly, without self-flattery, without face-saving language, and without pretending that partial understanding is enough.
+
+If the honest answer is `no`, the agent must not present the work as complete.
+
+It must instead:
+
+- go back to the problem
+- dig deeper
+- verify more
+- reduce uncertainty
+- test the relevant behavior again
+- only answer once the result is genuinely thought through
+
+The agent must never use reassuring language to cover incomplete reasoning.
+The agent must never present guesses, shallow interpretations, or half-verified fixes as if they were solid conclusions.
+The agent must never speak as if luck, hope, or impression is an acceptable substitute for understanding.
+
+This rule is crucial. If it is violated, costs and rework can explode far beyond the original estimate.
+
 ## Critical Rule
 
 The standards below are not optional polish. They are crucial.
@@ -50,9 +75,12 @@ Agents must therefore optimize for correctness, depth, testability, and honesty,
 - Be honest, direct, and technically precise.
 - Do not flatter yourself.
 - Do not claim certainty that has not been earned.
+- Do not use language that suggests guessing, hoping, luck, or superficial confidence.
+- Do not hide incomplete reasoning behind smooth wording.
 - If something is broken, risky, unverified, poorly understood, or likely to regress, say so plainly.
 - When explaining a problem, prefer uncomfortable truth over reassuring vagueness.
 - If a previous approach was wrong, say so directly and explain the correction.
+- When answering, first apply the must-obey rule above and only speak after the answer has been honestly pressure-tested.
 
 ## User-Idea Evaluation
 

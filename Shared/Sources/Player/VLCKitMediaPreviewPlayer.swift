@@ -23,8 +23,10 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     private var activeVolumeInteractionID: PlaybackDiagnostics.InteractionID?
     private var awaitingSeekTimeChange = false
     private var pendingReportedSeekPosition: Float?
+    private var volumeFeedbackState = VolumeFeedbackState()
     private var requestedMuted = false
     private var lastVisibleVideoOutput = false
+    private var isTemporarilyMutedForPause = false
 
     override init() {
         let videoView = VLCVideoView(frame: .zero)
@@ -46,6 +48,17 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         mediaPlayer.videoAspectRatio = nil
         mediaPlayer.videoCropGeometry = nil
         mediaPlayer.audio?.isMuted = false
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAudioVolumeChanged(_:)),
+            name: NSNotification.Name(rawValue: VLCMediaPlayerVolumeChanged),
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func loadMedia(from url: URL) {
@@ -55,6 +68,7 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         mediaPlayer.media = media
         awaitingSeekTimeChange = false
         pendingReportedSeekPosition = nil
+        volumeFeedbackState.clear()
         lastVisibleVideoOutput = false
         videoOutputVisibilityDidChange?(false)
         publishPlaybackMetrics()
@@ -74,13 +88,19 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
 
     func play() {
         PlaybackDiagnostics.log("[play] request t=\(PlaybackDiagnostics.timestampString())")
+        isTemporarilyMutedForPause = false
         mediaPlayer.audio?.isMuted = requestedMuted
         playbackStateDidChange?(.opening)
+        publishPlaybackMetrics()
         mediaPlayer.play()
     }
 
     func pause() {
         PlaybackDiagnostics.log("[pause] request t=\(PlaybackDiagnostics.timestampString())")
+        isTemporarilyMutedForPause = true
+        mediaPlayer.audio?.isMuted = true
+        playbackStateDidChange?(.paused)
+        publishPlaybackMetrics()
         mediaPlayer.pause()
     }
 
@@ -92,10 +112,12 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     }
 
     func setVolume(_ volume: Int, interactionID: PlaybackDiagnostics.InteractionID?) {
+        let clampedVolume = max(0, min(200, volume))
         activeVolumeInteractionID = interactionID
-        mediaPlayer.audio?.volume = Int32(max(0, min(200, volume)))
+        volumeFeedbackState.registerRequestedVolume(clampedVolume)
+        mediaPlayer.audio?.volume = Int32(clampedVolume)
         let actualVolume = Int(mediaPlayer.audio?.volume ?? 0)
-        PlaybackDiagnostics.log("[volume] apply id=\(interactionID ?? 0) target=\(volume) actual=\(actualVolume) t=\(PlaybackDiagnostics.timestampString())")
+        PlaybackDiagnostics.log("[volume] apply id=\(interactionID ?? 0) target=\(clampedVolume) actual=\(actualVolume) t=\(PlaybackDiagnostics.timestampString())")
         publishPlaybackMetrics()
     }
 
@@ -206,7 +228,10 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         activeVolumeInteractionID = nil
         awaitingSeekTimeChange = false
         pendingReportedSeekPosition = nil
+        volumeFeedbackState.clear()
         lastVisibleVideoOutput = false
+        isTemporarilyMutedForPause = true
+        mediaPlayer.audio?.isMuted = true
         mediaPlayer.stop()
         mediaPlayer.media = nil
         videoPresentationSizeDidChange?(nil)
@@ -227,12 +252,14 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         let elapsedText = elapsedTime.value == nil ? "0:00" : elapsedTime.stringValue
         let remainingText = remainingTime?.value == nil ? "--:--" : (remainingTime?.stringValue ?? "--:--")
         let effectivePosition = pendingReportedSeekPosition ?? mediaPlayer.position
+        let actualVolume = Int(mediaPlayer.audio?.volume ?? 100)
+        let effectiveVolume = volumeFeedbackState.effectiveVolume(actualVolume: actualVolume)
         let metrics = MediaPreviewPlaybackMetrics(
             position: max(0, min(1, effectivePosition)),
             isSeekable: mediaPlayer.isSeekable,
             elapsedText: elapsedText,
             remainingText: remainingText,
-            volume: Int(mediaPlayer.audio?.volume ?? 100)
+            volume: effectiveVolume
         )
         if let activeVolumeInteractionID {
             PlaybackDiagnostics.log("[volume] metrics id=\(activeVolumeInteractionID) confirmed=\(metrics.volume) t=\(PlaybackDiagnostics.timestampString())")
@@ -268,6 +295,17 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
             return CGFloat(number.doubleValue)
         }
         return nil
+    }
+
+    @objc
+    private func handleAudioVolumeChanged(_ notification: Notification) {
+        guard let audioObject = mediaPlayer.audio,
+              let changedObject = notification.object as AnyObject?,
+              changedObject === audioObject else {
+            return
+        }
+
+        PlaybackDiagnostics.log("[volume] vlc-notification actual=\(Int(audioObject.volume)) t=\(PlaybackDiagnostics.timestampString())")
     }
 
     var hasVisibleVideoOutput: Bool {
@@ -306,6 +344,10 @@ extension VLCKitMediaPreviewPlayer: VLCMediaPlayerDelegate {
         case .buffering:
             mappedState = .buffering
         case .playing:
+            if isTemporarilyMutedForPause {
+                isTemporarilyMutedForPause = false
+                mediaPlayer.audio?.isMuted = requestedMuted
+            }
             mappedState = .playing
         case .paused:
             mappedState = .paused

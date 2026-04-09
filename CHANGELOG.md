@@ -2,18 +2,31 @@
 
 ## Unreleased
 
+## 0.1.4 - 2026-04-10
+
 ### Added
 
 - Added owned `.opus` audio support in the app and extension metadata.
 - Added an audio-only Quick Look mode that keeps playback controls visible without showing an empty video frame.
+- Added stronger regression tests for volume state handling and for preventing playback metrics from overwriting the user-controlled volume slider position.
+- Added local VLCKit volume-notification diagnostics so downstream audio timing can be measured instead of guessed.
+
+### Changed
+
+- Full Quick Look preview autoplays again in expanded mode; compact Finder preview remains a non-live summary.
+- Volume slider state is now driven by the last user-commanded value instead of repeated backend metric write-backs.
 
 ### Fixed
 
-- Switching to another file while a preview is already open now stops the previous player before the new one is attached, preventing stray audio from continuing in the background.
+- Selecting another file while a preview is already open now stops the previously active preview session before the new one loads, preventing stray audio from continuing in the background.
+- Pause now cuts audible output immediately before VLC finishes its own state transition, so the control feels more responsive.
+- Volume handle release now stays at the released position instead of snapping back to the earlier pickup position.
+- The custom slider no longer pre-applies an absolute value on knob drag start, which was a real source of incorrect volume-handle movement.
 
-### Notes
+### Known Issues
 
-- `.opus` is audio-only support, not video support hidden behind another extension.
+- Direct click on the volume bar still has an observable delay on the target machine even though handle placement is now exact.
+- The remaining volume-click latency is instrumented but not fully eliminated in Finder-hosted Quick Look.
 
 ## 0.1.3 - 2026-04-09
 

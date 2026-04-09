@@ -23,6 +23,7 @@ final class PlaybackLabViewController: NSViewController {
     override func viewDidDisappear() {
         super.viewDidDisappear()
         player.stop()
+        MediaPreviewPlayerSession.deactivate(player)
     }
 
     func loadFile(_ url: URL?) {
@@ -67,7 +68,12 @@ final class PlaybackLabViewController: NSViewController {
         )
         previewContentView.attachRenderView(player.renderView)
         previewContentView.playbackToggleHandler = { [weak self] in
-            self?.player.togglePlayback()
+            guard let self else {
+                return
+            }
+
+            MediaPreviewPlayerSession.activate(self.player)
+            self.player.togglePlayback()
         }
         previewContentView.seekTrackingHandler = { [weak self] isTracking, interactionID in
             guard let self else {

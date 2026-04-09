@@ -9,19 +9,22 @@ private final class TrackingSlider: NSSlider {
     var trackingStateDidChange: ((Bool) -> Void)?
     private(set) var isTrackingInteraction = false
     private var wasDraggedDuringInteraction = false
-    private var pendingTrackClickValue: Double?
 
     override func mouseDown(with event: NSEvent) {
+        if shouldHandleAsTrackClick(event) {
+            isTrackingInteraction = true
+            wasDraggedDuringInteraction = false
+            trackingStateDidChange?(true)
+            _ = applyImmediateMouseDownValue(for: event)
+            isTrackingInteraction = false
+            trackingStateDidChange?(false)
+            return
+        }
+
         isTrackingInteraction = true
         wasDraggedDuringInteraction = false
         trackingStateDidChange?(true)
-        pendingTrackClickValue = applyImmediateMouseDownValue(for: event)
         super.mouseDown(with: event)
-        if !wasDraggedDuringInteraction, let pendingTrackClickValue {
-            doubleValue = pendingTrackClickValue
-            sendActionToTarget()
-        }
-        pendingTrackClickValue = nil
         isTrackingInteraction = false
         trackingStateDidChange?(false)
     }
@@ -31,13 +34,30 @@ private final class TrackingSlider: NSSlider {
         super.mouseDragged(with: event)
     }
 
+    private func shouldHandleAsTrackClick(_ event: NSEvent) -> Bool {
+        guard isEnabled,
+              let sliderCell = cell as? NSSliderCell else {
+            return false
+        }
+
+        let location = convert(event.locationInWindow, from: nil)
+        let knobRect = sliderCell.knobRect(flipped: isFlipped)
+        return !knobRect.contains(location)
+    }
+
     private func applyImmediateMouseDownValue(for event: NSEvent) -> Double? {
-        guard isEnabled, bounds.width > 0 else {
+        guard isEnabled,
+              let sliderCell = cell as? NSSliderCell else {
             return nil
         }
 
         let location = convert(event.locationInWindow, from: nil)
-        let clampedFraction = min(max(location.x / bounds.width, 0), 1)
+        let barRect = sliderCell.barRect(flipped: isFlipped)
+        guard barRect.width > 0 else {
+            return nil
+        }
+
+        let clampedFraction = min(max((location.x - barRect.minX) / barRect.width, 0), 1)
         let targetValue = minValue + Double(clampedFraction) * (maxValue - minValue)
         guard abs(doubleValue - targetValue) > .ulpOfOne else {
             return nil
@@ -92,6 +112,7 @@ final class PreviewContentView: NSView {
     private var stackBottomConstraint: NSLayoutConstraint?
     private var videoPresentationSize = CGSize(width: 16, height: 9)
     private var currentSeekInteractionID: PlaybackDiagnostics.InteractionID?
+    private var currentVolumeInteractionID: PlaybackDiagnostics.InteractionID?
     private var currentPlaybackState: MediaPreviewPlaybackState = .idle
     private var isVideoOutputVisible = false
     private var mediaKind: PreviewMediaKind = .video
@@ -114,6 +135,14 @@ final class PreviewContentView: NSView {
 
     var isControlsRowHiddenForTesting: Bool {
         controlsRow.isHidden
+    }
+
+    var volumeSliderValueForTesting: Double {
+        volumeSlider.doubleValue
+    }
+
+    func setVolumeSliderValueForTesting(_ value: Double) {
+        volumeSlider.doubleValue = value
     }
 
     override init(frame frameRect: NSRect) {
@@ -151,6 +180,7 @@ final class PreviewContentView: NSView {
         playbackButton.isEnabled = true
         seekSlider.isEnabled = false
         volumeSlider.isEnabled = true
+        volumeSlider.doubleValue = 100
     }
 
     func setMediaKind(_ mediaKind: PreviewMediaKind) {
@@ -169,6 +199,7 @@ final class PreviewContentView: NSView {
         playbackButton.isEnabled = false
         seekSlider.isEnabled = false
         volumeSlider.isEnabled = false
+        volumeSlider.doubleValue = 100
         placeholderLabel.isHidden = false
         placeholderLabel.stringValue = "Choose a file to start the renderer lab."
     }
@@ -182,6 +213,7 @@ final class PreviewContentView: NSView {
         playbackButton.isEnabled = false
         seekSlider.isEnabled = false
         volumeSlider.isEnabled = false
+        volumeSlider.doubleValue = 100
         placeholderLabel.isHidden = false
         placeholderLabel.stringValue = "Playback failed"
     }
@@ -274,9 +306,6 @@ final class PreviewContentView: NSView {
         seekSlider.isEnabled = metrics.isSeekable
         elapsedTimeLabel.stringValue = metrics.elapsedText
         remainingTimeLabel.stringValue = metrics.remainingText
-        if !volumeSlider.isTrackingInteraction {
-            volumeSlider.integerValue = metrics.volume
-        }
     }
 
     func updatePlaybackState(_ state: MediaPreviewPlaybackState) {
@@ -425,6 +454,22 @@ final class PreviewContentView: NSView {
         volumeSlider.action = #selector(handleVolumeChanged)
         volumeSlider.controlSize = .small
         volumeSlider.isContinuous = true
+        volumeSlider.trackingStateDidChange = { [weak self] isTracking in
+            guard let self else {
+                return
+            }
+
+            if isTracking {
+                let interactionID = PlaybackDiagnostics.makeInteractionID(kind: "volume")
+                self.currentVolumeInteractionID = interactionID
+                PlaybackDiagnostics.log("[volume] ui-begin id=\(interactionID) target=\(Int(self.volumeSlider.doubleValue.rounded())) t=\(PlaybackDiagnostics.timestampString())")
+            } else if let interactionID = self.currentVolumeInteractionID {
+                let finalVolume = Int(self.volumeSlider.doubleValue.rounded())
+                PlaybackDiagnostics.log("[volume] ui-end id=\(interactionID) target=\(finalVolume) t=\(PlaybackDiagnostics.timestampString())")
+                self.volumeHandler?(finalVolume, interactionID)
+                self.currentVolumeInteractionID = nil
+            }
+        }
 
         textStack.orientation = .vertical
         textStack.alignment = .leading
@@ -520,9 +565,10 @@ final class PreviewContentView: NSView {
 
     @objc
     private func handleVolumeChanged() {
-        let interactionID = PlaybackDiagnostics.makeInteractionID(kind: "volume")
-        PlaybackDiagnostics.log("[volume] ui-change id=\(interactionID) target=\(volumeSlider.integerValue) t=\(PlaybackDiagnostics.timestampString())")
-        volumeHandler?(volumeSlider.integerValue, interactionID)
+        let interactionID = currentVolumeInteractionID ?? PlaybackDiagnostics.makeInteractionID(kind: "volume")
+        let targetVolume = Int(volumeSlider.doubleValue.rounded())
+        PlaybackDiagnostics.log("[volume] ui-change id=\(interactionID) target=\(targetVolume) t=\(PlaybackDiagnostics.timestampString())")
+        volumeHandler?(targetVolume, interactionID)
     }
 
     private func layoutVideoCanvas() {

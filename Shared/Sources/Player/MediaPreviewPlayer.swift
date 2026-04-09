@@ -19,6 +19,22 @@ struct MediaPreviewPlaybackMetrics: Equatable {
     let volume: Int
 }
 
+struct VolumeFeedbackState {
+    private(set) var pendingVolume: Int = 100
+
+    mutating func registerRequestedVolume(_ volume: Int) {
+        pendingVolume = max(0, min(200, volume))
+    }
+
+    mutating func effectiveVolume(actualVolume: Int) -> Int {
+        return pendingVolume
+    }
+
+    mutating func clear() {
+        pendingVolume = 100
+    }
+}
+
 @MainActor
 protocol MediaPreviewPlayer: AnyObject {
     var renderView: NSView { get }

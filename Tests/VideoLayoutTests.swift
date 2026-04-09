@@ -11,6 +11,41 @@ final class VideoLayoutTests: XCTestCase {
         )
     }
 
+    func testVolumeFeedbackStateKeepsRequestedVolumeUntilActualCatchesUp() {
+        var state = VolumeFeedbackState()
+        state.registerRequestedVolume(137)
+
+        XCTAssertEqual(state.effectiveVolume(actualVolume: 100), 137)
+        XCTAssertEqual(state.pendingVolume, 137)
+        XCTAssertEqual(state.effectiveVolume(actualVolume: 137), 137)
+        XCTAssertEqual(state.pendingVolume, 137)
+    }
+
+    func testVolumeFeedbackStateFallsBackToActualVolumeWhenNoPendingValueExists() {
+        var state = VolumeFeedbackState()
+
+        XCTAssertEqual(state.effectiveVolume(actualVolume: 82), 100)
+
+        state.registerRequestedVolume(91)
+        state.clear()
+
+        XCTAssertEqual(state.effectiveVolume(actualVolume: 77), 100)
+    }
+
+    func testVolumeFeedbackStateKeepsLatestRequestedVolumeEvenIfPlayerReportsOlderValue() {
+        var state = VolumeFeedbackState()
+
+        state.registerRequestedVolume(120)
+        XCTAssertEqual(state.effectiveVolume(actualVolume: 120), 120)
+
+        state.registerRequestedVolume(184)
+
+        XCTAssertEqual(state.effectiveVolume(actualVolume: 120), 184)
+        XCTAssertEqual(state.pendingVolume, 184)
+        XCTAssertEqual(state.effectiveVolume(actualVolume: 140), 184)
+        XCTAssertEqual(state.pendingVolume, 184)
+    }
+
     func testCentersFourByThreeVideoInsideWideBounds() {
         let rect = VideoLayout.fittedRect(
             contentSize: CGSize(width: 512, height: 384),
@@ -82,6 +117,25 @@ final class VideoLayoutTests: XCTestCase {
     }
 
     @MainActor
+    func testPlaybackMetricsDoNotOverwriteUserControlledVolumeSliderValue() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+        previewView.setVolumeSliderValueForTesting(173)
+
+        let metrics = MediaPreviewPlaybackMetrics(
+            position: 0.2,
+            isSeekable: true,
+            elapsedText: "0:10",
+            remainingText: "-0:20",
+            volume: 40
+        )
+
+        previewView.updatePlaybackMetrics(metrics)
+
+        XCTAssertEqual(previewView.volumeSliderValueForTesting, 173)
+    }
+
+    @MainActor
     func testReplacingPlayerStopsPreviousPlayer() {
         let current = PlayerSpy()
         let next = PlayerSpy()
@@ -90,6 +144,28 @@ final class VideoLayoutTests: XCTestCase {
 
         XCTAssertTrue(current.stopCalled)
         XCTAssertTrue(replaced === next)
+    }
+
+    @MainActor
+    func testActivatingNewPlayerStopsPreviousActivePlayer() {
+        let first = PlayerSpy()
+        let second = PlayerSpy()
+
+        MediaPreviewPlayerSession.activate(first)
+        MediaPreviewPlayerSession.activate(second)
+
+        XCTAssertTrue(first.stopCalled)
+        XCTAssertFalse(second.stopCalled)
+    }
+
+    @MainActor
+    func testStoppingActivePreviewStopsCurrentActivePlayer() {
+        let active = PlayerSpy()
+
+        MediaPreviewPlayerSession.activate(active)
+        MediaPreviewPlayerSession.stopActivePreview()
+
+        XCTAssertTrue(active.stopCalled)
     }
 }
 

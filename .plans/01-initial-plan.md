@@ -2,9 +2,9 @@
 
 Version snapshot:
 
-- release version: `0.1.3`
-- build number: `4`
-- snapshot date: `2026-04-09`
+- release version: `0.1.4`
+- build number: `5`
+- snapshot date: `2026-04-10`
 
 ## Goal
 
@@ -52,8 +52,8 @@ The extension is a view-based Quick Look preview extension with:
 
 Current behavior:
 
-- playback starts paused in all Quick Look contexts
 - compact Finder column preview is non-live summary mode
+- expanded Quick Look preview autoplays
 - large Quick Look preview is the live playback surface
 
 This was a deliberate change. Autoplay in the small Finder preview was too disruptive and Finder does not expose a reliable public “column preview vs full preview” switch for the extension.
@@ -142,14 +142,14 @@ In practice, the custom owned UTIs are what made routing predictable.
 - Finder can route supported files to `MKVQuickLook`
 - `mkv`, `webm`, and Ogg video preview path are working
 - problematic `Reflections.mkv` is now selected through the extension and renders in the correct position
-- playback starts paused
 - large preview exposes manual controls
 - volume and seek controls exist
 - play/pause now lives in the control row beside the seek bar
 - diagnostics exist for volume and seek latency
-- dragging the volume knob applies immediately
+- dragging the volume knob lands at the release point correctly again
 - dragging the seek knob works
 - pure click behavior on the seek bar was repeatedly problematic in Finder-hosted Quick Look and required custom handling
+- autoplay in expanded Quick Look works again without re-enabling the old compact-preview autoplay bug
 
 ### Deliberate Constraints
 
@@ -163,7 +163,7 @@ In practice, the custom owned UTIs are what made routing predictable.
 These findings are specific enough that they should remain documented here:
 
 - volume drag is responsive because the app writes directly to `mediaPlayer.audio?.volume`
-- volume bar click had an observable lag even when drag felt immediate
+- volume bar click still has an observable lag on the target machine even after the handle-position regressions were corrected
 - seek drag and seek pure-click were not equivalent in Finder-hosted Quick Look
 - a plain click on the seek bar could trigger internal activity without moving the handle or visibly changing position
 - click-plus-small-drag on the seek bar behaved differently and did move to the target
@@ -174,10 +174,44 @@ Current engineering interpretation:
 - seek-bar click behavior is at least partly an interaction-delivery problem, not just a simple seek-timing problem
 - Finder-hosted Quick Look control behavior must be treated as distinct from generic AppKit assumptions
 
+Implementation-level findings from the later volume investigation:
+
+- the custom slider path must distinguish knob drags from track clicks; pre-applying an absolute value on knob drag start is wrong
+- track-click targeting must use AppKit slider bar geometry (`NSSliderCell.barRectFlipped(_:)` / `knobRectFlipped(_:)`), not raw `bounds.width`
+- volume needs the same kind of interaction protection that seek needed:
+  - a persistent interaction identity during the drag/click
+  - a pending requested value that stays authoritative
+- the deeper correction is stronger than that:
+  - for this app, the displayed volume should not be driven by repeated player read-backs at all
+  - volume is a local user command, not a media timeline
+  - letting VLCKit metric publications re-drive the slider reintroduces drift and apparent delay after release
+- another concrete failure that actually happened:
+  - the custom slider was still pre-applying an absolute value on knob drag start
+  - that was wrong for knob drags and caused volume-handle movement to be inconsistent with the real drag gesture
+- otherwise a late metrics publication from VLCKit can overwrite the just-released handle position and make the control feel delayed or imprecise
+
+Primary sources used for this conclusion:
+
+- AppKit SDK header: `NSSliderCell.h`
+  - `-knobRectFlipped:`
+  - `-barRectFlipped:`
+- AppKit SDK header: `NSCell.h`
+  - `-hitTestForEvent:inRect:ofView:`
+- repository-local playback diagnostics logs and the `TrackingSlider` / `VLCKitMediaPreviewPlayer` code paths
+
 Current diagnostic support:
 
 - timestamped unified logging exists for seek and volume UI events, controller handoff, player apply, and post-apply metrics
 - this must be used before making more speculative “speed” changes
+- those diagnostics already answer one key question:
+  - the app does measure UI-change, controller handoff, player apply, and later metrics timestamps
+  - so when the slider still feels wrong after `apply`, the remaining problem is not “missing measurement”; it is usually wrong control architecture or downstream audio/output behavior
+- local VLCKit volume notifications are now also logged, so future work must compare:
+  - `ui-change`
+  - `controller-change`
+  - `apply`
+  - `vlc-notification`
+  - `metrics`
 
 ## Test Strategy That Must Stay In Place
 
@@ -201,6 +235,14 @@ Important CI exception:
 - these smoke tests are intentionally skipped in the GitHub Release workflow
 - reason: they depend on visible AppKit/VLCKit rendering and are not reliable on hosted release runners
 - they remain mandatory for local verification
+
+### Control Regression Tests
+
+The test suite must also keep explicit regression coverage for control-state bugs that already happened:
+
+- volume state must keep the latest requested value even if the player reports an older one
+- playback metrics must not overwrite the user-controlled volume slider position
+- active preview session replacement must stop the previous player
 
 ### Metadata Tests
 
@@ -535,7 +577,7 @@ Rule:
 
 - keep and use the host-app playback lab for the same shared renderer path
 
-### 4. Do Not Autoplay In Finder By Default
+### 4. Do Not Autoplay In Compact Finder Preview
 
 What went wrong:
 
@@ -548,12 +590,12 @@ Reason:
 
 Rule:
 
-- default to paused
-- require explicit user play
+- compact Finder preview must stay non-live
+- any autoplay behavior must be restricted to the expanded Quick Look path only
 
 No-go:
 
-- do not reintroduce autoplay unless there is a reliable host-context discriminator and a test for it
+- do not reintroduce autoplay in compact Finder preview unless there is a reliable host-context discriminator and a test for it
 
 ### 5. Do Not Trust VLC State Enums As The Only Playback Truth
 
@@ -587,10 +629,13 @@ Rule:
 - for seek, test both while playback is active:
   - knob drag
   - bar click with no drag
+- for volume, backend playback metrics must not be allowed to re-drive the visible slider position during or after user interaction
+- for knob drags, do not pre-apply an absolute track-click value at mouse-down
 
 No-go:
 
 - do not claim control fixes complete until both interaction styles are verified in Finder
+- do not let player read-backs overwrite the user-commanded volume slider state
 
 ### 7. Do Not Use Clever Paused-Start State Machines Without End-To-End Playback Verification
 
@@ -647,6 +692,22 @@ No-go:
 
 - no ffmpeg/remux/transcode fallback in the normal preview path
 - no persistent generated media files
+
+### 11. Do Not Describe Work As Solved Before Evidence Exists
+
+What went wrong:
+
+- some explanations used probability language or confidence language before the underlying behavior was fully verified
+- that weakened trust and violated the repository communication standard
+
+Rule:
+
+- separate observed fact, evidence, hypothesis, fix, and remaining unverified risk
+- do not describe a fix as complete until tests and observed behavior support that claim
+
+No-go:
+
+- do not present guesses, partial reasoning, or under-verified fixes as if they were solid conclusions
 
 ## Recommended Debug Workflow For Future Changes
 
@@ -712,6 +773,6 @@ These are reasonable future changes:
 These are risky and should be approached carefully:
 
 - changing renderer integration again
-- reintroducing autoplay
+- changing expanded-preview autoplay behavior without re-checking compact-preview isolation
 - trying to force Finder compact preview sizing
 - adding conversion/remux fallback logic

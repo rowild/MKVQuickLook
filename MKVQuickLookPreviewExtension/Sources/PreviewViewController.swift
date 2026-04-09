@@ -20,7 +20,12 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         super.viewDidLoad()
         preferredContentSize = Self.expandedPreferredContentSize
         previewContentView.playbackToggleHandler = { [weak self] in
-            self?.player?.togglePlayback()
+            guard let self, let player = self.player else {
+                return
+            }
+
+            MediaPreviewPlayerSession.activate(player)
+            player.togglePlayback()
         }
         previewContentView.seekTrackingHandler = { [weak self] isTracking, interactionID in
             guard let self else {
@@ -54,11 +59,13 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
     override func viewDidDisappear() {
         super.viewDidDisappear()
         player?.stop()
+        MediaPreviewPlayerSession.deactivate(player)
         isMediaLoaded = false
     }
 
     func preparePreviewOfFile(at url: URL) async throws {
         do {
+            MediaPreviewPlayerSession.stopActivePreview()
             let metadata = try PreviewMetadata(fileURL: url)
             let player = VLCKitMediaPreviewPlayer()
             player.playbackStateDidChange = { [weak self] state in
@@ -106,13 +113,17 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         case .compact:
             if isMediaLoaded && modeChanged {
                 player?.stop()
+                MediaPreviewPlayerSession.deactivate(player)
                 isMediaLoaded = false
             }
         case .expanded:
             if !isMediaLoaded, let currentFileURL {
                 player?.loadMedia(from: currentFileURL)
                 isMediaLoaded = true
-                player?.primeForPausedStart()
+                if let player {
+                    MediaPreviewPlayerSession.activate(player)
+                    player.play()
+                }
             }
         }
     }

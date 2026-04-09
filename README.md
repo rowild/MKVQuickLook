@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.3` (`build 4`)
+Version: `0.1.4` (`build 5`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -22,6 +22,15 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 - That is expected for the current release process.
 - Users may need to open it via Finder context menu or allow it in System Settings after the first launch attempt.
 
+## Current Limitation
+
+The volume slider still has one known unresolved issue:
+
+- dragging the handle now lands exactly where released
+- but direct click on the volume bar can still show an observable delay in Finder-hosted Quick Look on the target machine
+
+This is already instrumented in the app logs and documented in the implementation plan. It is not considered solved yet.
+
 Current status:
 
 - host app with main window, settings/help UI, and playback lab
@@ -30,8 +39,10 @@ Current status:
 - direct VLCKit-backed playback path for supported files
 - audio-only `.opus` files use the same VLCKit backend with an audio preview UI instead of a video frame
 - Finder registration and Launch Services ownership wired into the app bundle metadata
-- playback defaults to paused in Quick Look
+- full Quick Look preview autoplays; compact Finder preview remains summary-only
 - renderer, metadata, and UI regressions covered by automated tests
+- volume handle placement is now stable on drag release
+- volume bar click latency is still a known limitation
 
 ## Bundling
 
@@ -141,8 +152,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.3`.
-5. Set the release title, for example `v0.1.3`.
+4. Create or select a tag such as `v0.1.4`.
+5. Set the release title, for example `v0.1.4`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -151,11 +162,11 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.1.4
+git push origin v0.1.4
 
-gh release create v0.1.3 dist/MKVQuickLook-v0.1.3.dmg \
-  --title "v0.1.3" \
+gh release create v0.1.4 dist/MKVQuickLook-v0.1.4.dmg \
+  --title "v0.1.4" \
   --notes-file CHANGELOG.md
 ```
 
@@ -178,8 +189,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.
