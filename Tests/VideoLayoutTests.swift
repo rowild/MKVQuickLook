@@ -1,0 +1,211 @@
+import AppKit
+import CoreGraphics
+import XCTest
+
+final class VideoLayoutTests: XCTestCase {
+    func testCentersFourByThreeVideoInsideWideBounds() {
+        let rect = VideoLayout.fittedRect(
+            contentSize: CGSize(width: 512, height: 384),
+            in: CGRect(x: 0, y: 0, width: 1000, height: 500)
+        )
+
+        XCTAssertEqual(rect.origin.x, 167, accuracy: 1)
+        XCTAssertEqual(rect.origin.y, 0, accuracy: 1)
+        XCTAssertEqual(rect.width, 666, accuracy: 1)
+        XCTAssertEqual(rect.height, 500, accuracy: 1)
+    }
+
+    func testCentersSixteenByNineVideoInsideTallBounds() {
+        let rect = VideoLayout.fittedRect(
+            contentSize: CGSize(width: 1920, height: 1080),
+            in: CGRect(x: 0, y: 0, width: 600, height: 900)
+        )
+
+        XCTAssertEqual(rect.origin.x, 0, accuracy: 1)
+        XCTAssertEqual(rect.origin.y, 281, accuracy: 1)
+        XCTAssertEqual(rect.width, 600, accuracy: 1)
+        XCTAssertEqual(rect.height, 337, accuracy: 1)
+    }
+
+    func testReturnsBoundsForInvalidContentSize() {
+        let bounds = CGRect(x: 10, y: 20, width: 320, height: 180)
+        let rect = VideoLayout.fittedRect(contentSize: .zero, in: bounds)
+
+        XCTAssertEqual(rect, bounds)
+    }
+
+    @MainActor
+    func testPlaceholderHidesOncePausedFrameIsVisible() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+        previewView.updatePlaybackState(.opening)
+        previewView.setVideoOutputVisible(false)
+
+        XCTAssertTrue(previewView.isPlaceholderVisibleForTesting)
+        XCTAssertEqual(previewView.placeholderTextForTesting, "Preparing video surface...")
+
+        previewView.setVideoOutputVisible(true)
+        previewView.updatePlaybackState(.paused)
+
+        XCTAssertFalse(previewView.isPlaceholderVisibleForTesting)
+    }
+
+    @MainActor
+    func testPlaybackButtonRemainsEnabledWhileOpeningAndBuffering() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+
+        previewView.updatePlaybackState(.opening)
+        XCTAssertTrue(previewView.isPlaybackButtonEnabledForTesting)
+
+        previewView.updatePlaybackState(.buffering)
+        XCTAssertTrue(previewView.isPlaybackButtonEnabledForTesting)
+    }
+}
+
+@MainActor
+final class RendererSmokeTests: XCTestCase {
+    func testReflectionsMKVProducesVisibleVideoFrame() throws {
+        try assertVisibleVideoFrame(for: sampleURL(named: "Reflections.mkv"))
+    }
+
+    func testWebMProducesVisibleVideoFrame() throws {
+        try assertVisibleVideoFrame(for: sampleURL(named: "big_buck_bunny_240p.webm"))
+    }
+
+    func testPrimePausedStartCanTransitionToPlaying() throws {
+        let url = sampleURL(named: "Reflections.mkv")
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+        previewView.apply(metadata: try PreviewMetadata(fileURL: url))
+
+        let player = VLCKitMediaPreviewPlayer()
+        var latestState: MediaPreviewPlaybackState = .idle
+        player.playbackStateDidChange = { latestState = $0 }
+        previewView.attachRenderView(player.renderView)
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 720),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = previewView
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        window.displayIfNeeded()
+        defer {
+            player.stop()
+            window.orderOut(nil)
+        }
+
+        player.loadMedia(from: url)
+        player.primeForPausedStart()
+
+        XCTAssertTrue(
+            waitUntil(timeout: 15) {
+                previewView.layoutSubtreeIfNeeded()
+                player.refreshVideoLayout()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                if case .paused = latestState {
+                    return true
+                }
+                return false
+            },
+            "Timed out waiting for paused-ready priming state"
+        )
+
+        player.play()
+
+        XCTAssertTrue(
+            waitUntil(timeout: 15) {
+                previewView.layoutSubtreeIfNeeded()
+                player.refreshVideoLayout()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                return player.hasVisibleVideoOutput
+            },
+            "Timed out waiting for visible video output after play from paused-ready state"
+        )
+    }
+
+    private func assertVisibleVideoFrame(for url: URL, file: StaticString = #filePath, line: UInt = #line) throws {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+        previewView.apply(metadata: try PreviewMetadata(fileURL: url))
+
+        let player = VLCKitMediaPreviewPlayer()
+        previewView.attachRenderView(player.renderView)
+        previewView.updatePlaybackState(.idle)
+        previewView.updateVideoPresentationSize(CGSize(width: 16, height: 9))
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 960, height: 720),
+            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = previewView
+        window.orderFrontRegardless()
+        window.makeKeyAndOrderFront(nil)
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        window.displayIfNeeded()
+        defer {
+            player.stop()
+            window.orderOut(nil)
+        }
+
+        player.loadMedia(from: url)
+        player.play()
+
+        XCTAssertTrue(
+            waitUntil(timeout: 15) {
+                previewView.layoutSubtreeIfNeeded()
+                player.refreshVideoLayout()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                return player.hasVisibleVideoOutput
+            },
+            "Timed out waiting for VLCKit to report visible video output for \(url.lastPathComponent)",
+            file: file,
+            line: line
+        )
+
+        let snapshotURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("png")
+        player.saveSnapshot(to: snapshotURL, width: 320, height: 0)
+
+        XCTAssertTrue(
+            waitUntil(timeout: 10) {
+                guard let attributes = try? FileManager.default.attributesOfItem(atPath: snapshotURL.path),
+                      let fileSize = attributes[.size] as? NSNumber else {
+                    RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                    return false
+                }
+
+                return fileSize.intValue > 0 && NSImage(contentsOf: snapshotURL) != nil
+            },
+            "VLCKit did not produce a readable snapshot for \(url.lastPathComponent)",
+            file: file,
+            line: line
+        )
+    }
+
+    private func sampleURL(named name: String) -> URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("example-videos")
+            .appendingPathComponent(name)
+    }
+
+    private func waitUntil(timeout: TimeInterval, condition: () -> Bool) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() {
+                return true
+            }
+        }
+        return false
+    }
+}

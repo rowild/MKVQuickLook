@@ -1,0 +1,7 @@
+.DS_Store
+build/
+DerivedData/
+.build/
+dist/
+example-videos/
+Vendor/VLCKit.xcframework/macos-arm64_x86_64/dSYMs/

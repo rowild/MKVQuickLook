@@ -1,0 +1,109 @@
+name: MKVQuickLook
+options:
+  bundleIdPrefix: com.robertwildling
+  createIntermediateGroups: true
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    CURRENT_PROJECT_VERSION: 2
+    MARKETING_VERSION: 0.1.1
+targets:
+  MKVQuickLookApp:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: MKVQuickLookApp/Sources
+      - path: Shared/Sources
+    resources:
+      - path: MKVQuickLookApp/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robertwildling.MKVQuickLook
+        PRODUCT_NAME: MKVQuickLook
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: MKVQuickLookApp/Resources/Info.plist
+        INFOPLIST_KEY_NSPrincipalClass: NSApplication
+        INFOPLIST_KEY_NSMainNibFile: ""
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
+    dependencies:
+      - framework: Vendor/VLCKit.xcframework
+        embed: true
+      - sdk: QuartzCore.framework
+      - target: MKVQuickLookPreviewExtension
+        embed: true
+  MKVQuickLookPreviewExtension:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: MKVQuickLookPreviewExtension/Sources
+      - path: Shared/Sources
+    resources:
+      - path: MKVQuickLookPreviewExtension/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robertwildling.MKVQuickLook.PreviewExtension
+        PRODUCT_NAME: MKVQuickLookPreviewExtension
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: MKVQuickLookPreviewExtension/Resources/Info.plist
+        CODE_SIGN_ENTITLEMENTS: MKVQuickLookPreviewExtension/MKVQuickLookPreviewExtension.entitlements
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
+          - "@executable_path/../../Frameworks"
+          - "@loader_path/../Frameworks"
+          - "@loader_path/../../Frameworks"
+    dependencies:
+      - framework: Vendor/VLCKit.xcframework
+        embed: true
+      - sdk: Quartz.framework
+      - sdk: AudioToolbox.framework
+      - sdk: AVFoundation.framework
+      - sdk: CFNetwork.framework
+      - sdk: CoreGraphics.framework
+      - sdk: CoreMedia.framework
+      - sdk: CoreText.framework
+      - sdk: CoreVideo.framework
+      - sdk: QuartzCore.framework
+      - sdk: Security.framework
+      - sdk: VideoToolbox.framework
+      - sdk: libbz2.tbd
+      - sdk: libc++.tbd
+      - sdk: libiconv.tbd
+      - sdk: libxml2.tbd
+  MKVQuickLookTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests
+      - path: Shared/Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.robertwildling.MKVQuickLookTests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - framework: Vendor/VLCKit.xcframework
+      - sdk: QuartzCore.framework
+schemes:
+  MKVQuickLook:
+    build:
+      targets:
+        MKVQuickLookApp: all
+        MKVQuickLookPreviewExtension: all
+        MKVQuickLookTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - MKVQuickLookTests
+    archive:
+      config: Release
