@@ -4,4 +4,6 @@ DerivedData/
 .build/
 dist/
 example-videos/
-Vendor/VLCKit.xcframework/macos-arm64_x86_64/dSYMs/
+Vendor/VLCKit.xcframework/
+Vendor/VLCKit-COPYING.txt
+Vendor/VLCKit-NEWS.txt

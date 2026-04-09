@@ -17,7 +17,7 @@ Current status:
 
 - host app with main window, settings/help UI, and playback lab
 - Quick Look Preview Extension registered for owned target file types
-- `VLCKit 3.7.2` vendored locally in `Vendor/`
+- `VLCKit 3.7.2` fetched into `Vendor/` by a bootstrap script
 - direct VLCKit-backed playback path for supported files
 - Finder registration and Launch Services ownership wired into the app bundle metadata
 - playback defaults to paused in Quick Look
@@ -29,7 +29,7 @@ Current status:
 
 - It does not need to be pre-installed on the Mac.
 - The app does not download it at runtime.
-- The framework is vendored in this repo under `Vendor/VLCKit.xcframework`.
+- The framework is downloaded for development by `./scripts/bootstrap-vlckit.sh` into `Vendor/VLCKit.xcframework`.
 - During the build, Xcode embeds `VLCKit.framework` into the Quick Look extension bundle at:
   `MKVQuickLook.app/Contents/PlugIns/MKVQuickLookPreviewExtension.appex/Contents/Frameworks/`
 
@@ -46,17 +46,23 @@ This means the shipped app is self-contained with respect to the playback backen
 - `project.yml`: XcodeGen spec
 - `MKVQuickLook.xcodeproj`: generated Xcode project
 - `CHANGELOG.md`: versioned change history
-- `Vendor/VLCKit.xcframework`: vendored official VideoLAN binary package
-- `Vendor/VLCKit-COPYING.txt`: upstream LGPL license text
+- `scripts/bootstrap-vlckit.sh`: downloads the pinned official VideoLAN binary package
+- `Vendor/`: local dependency install location created by the bootstrap script
 
 Repository policy:
 
 - release artifacts in `dist/` are local build outputs and must not be committed
 - large local sample media belongs in `example-videos/` and must not be committed
-- the vendored `VLCKit` runtime framework is kept in the repo so developers can build immediately after cloning
-- the vendored `VLCKit` debug symbols are intentionally not kept in the repo because they add hundreds of megabytes and are not required to build or run the app
+- `VLCKit` is fetched on demand rather than committed into Git history
+- vendored debug symbols are intentionally not kept because they add hundreds of megabytes and are not required to build or run the app
 
 ## Build
+
+Fetch the pinned `VLCKit` package first:
+
+```sh
+./scripts/bootstrap-vlckit.sh
+```
 
 Generate the project if needed:
 
@@ -86,6 +92,8 @@ Build, copy to `~/Applications`, refresh Quick Look, and open the app once:
 
 That script also applies ad hoc bundle signatures to the framework, extension, and app bundle, because plain `CODE_SIGNING_ALLOWED=NO` debug builds are not enough for reliable Quick Look extension registration.
 
+`install-local.sh` automatically bootstraps `VLCKit` first if it is missing.
+
 Refresh Quick Look manually without reinstalling:
 
 ```sh
@@ -102,6 +110,7 @@ Create a release-style DMG in `dist/`:
 
 What this script does:
 
+- bootstraps `VLCKit` if needed
 - builds the app in `Release`
 - applies ad hoc signatures to the framework, extension, and app bundle
 - stages the app with an `Applications` symlink
@@ -147,6 +156,7 @@ This repository now includes a GitHub Actions workflow at [`.github/workflows/re
 Behavior:
 
 - pushing a tag matching `v*` triggers the workflow
+- the workflow bootstraps `VLCKit`
 - the workflow runs the test suite
 - it builds the DMG with `./scripts/build-release-dmg.sh`
 - it creates or updates the GitHub Release for that tag
@@ -195,14 +205,21 @@ Keep those files local only. If reproducible media fixtures are needed for autom
 
 ## Developer Dependency Setup
 
-At the moment, no extra bootstrap step is required for a fresh clone.
+After a fresh clone, run:
 
-The repository already contains the runtime `VLCKit.xcframework` needed to build and run the app. That is why another developer can clone the repo and build immediately without first downloading an external dependency package.
+```sh
+./scripts/bootstrap-vlckit.sh
+```
+
+This downloads the pinned official `VLCKit 3.7.2` binary package from VideoLAN, verifies its checksum, and installs only the files this repo needs into `Vendor/`.
+
+The install and release scripts also call this automatically, but it is still the correct first setup step for developers.
 
 What is intentionally not included:
 
 - large sample media in `example-videos/`
 - generated release artifacts in `dist/`
+- committed `VLCKit` runtime binaries
 - vendored `VLCKit` debug symbols
 
 If the dependency strategy changes later, the README must be updated so the required bootstrap step is impossible to miss.

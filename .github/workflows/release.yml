@@ -26,6 +26,9 @@ jobs:
           xcodebuild -version
           swift --version
 
+      - name: Bootstrap VLCKit
+        run: ./scripts/bootstrap-vlckit.sh
+
       - name: Run tests
         run: |
           xcodebuild \

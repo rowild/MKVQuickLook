@@ -13,6 +13,8 @@ INSTALLED_APP_PATH="$INSTALL_DIR/$APP_NAME"
 EXTENSION_PATH="$INSTALLED_APP_PATH/Contents/PlugIns/MKVQuickLookPreviewExtension.appex"
 FRAMEWORK_PATH="$EXTENSION_PATH/Contents/Frameworks/VLCKit.framework"
 
+"$ROOT_DIR/scripts/bootstrap-vlckit.sh"
+
 echo "==> Building $APP_NAME"
 xcodebuild \
   -project "$PROJECT_PATH" \

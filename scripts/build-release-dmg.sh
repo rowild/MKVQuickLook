@@ -26,6 +26,8 @@ if [[ -z "$VERSION" ]]; then
   exit 1
 fi
 
+"$ROOT_DIR/scripts/bootstrap-vlckit.sh"
+
 echo "==> Building $APP_NAME ($CONFIGURATION)"
 rm -rf "$DERIVED_DATA_PATH"
 xcodebuild \
