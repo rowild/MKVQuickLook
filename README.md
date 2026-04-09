@@ -64,6 +64,8 @@ Fetch the pinned `VLCKit` package first:
 ./scripts/bootstrap-vlckit.sh
 ```
 
+If you just cloned the repo and `Vendor/` looks empty or incomplete, that is expected. The binary dependency is no longer committed to Git history and must be populated locally by the bootstrap script.
+
 Generate the project if needed:
 
 ```sh
@@ -214,6 +216,14 @@ After a fresh clone, run:
 This downloads the pinned official `VLCKit 3.7.2` binary package from VideoLAN, verifies its checksum, and installs only the files this repo needs into `Vendor/`.
 
 The install and release scripts also call this automatically, but it is still the correct first setup step for developers.
+
+In other words:
+
+1. clone the repo
+2. run `./scripts/bootstrap-vlckit.sh`
+3. build, test, install, or create a DMG
+
+Do not treat an empty `Vendor/` after clone as a broken repo state. That is now the intended setup.
 
 What is intentionally not included:
 
