@@ -94,6 +94,7 @@ final class PreviewContentView: NSView {
     private var currentSeekInteractionID: PlaybackDiagnostics.InteractionID?
     private var currentPlaybackState: MediaPreviewPlaybackState = .idle
     private var isVideoOutputVisible = false
+    private var mediaKind: PreviewMediaKind = .video
 
     var isPlaceholderVisibleForTesting: Bool {
         !placeholderLabel.isHidden
@@ -105,6 +106,14 @@ final class PreviewContentView: NSView {
 
     var isPlaybackButtonEnabledForTesting: Bool {
         playbackButton.isEnabled
+    }
+
+    var isVideoFrameHiddenForTesting: Bool {
+        videoFrameView.isHidden
+    }
+
+    var isControlsRowHiddenForTesting: Bool {
+        controlsRow.isHidden
     }
 
     override init(frame frameRect: NSRect) {
@@ -124,19 +133,30 @@ final class PreviewContentView: NSView {
     }
 
     func apply(metadata: PreviewMetadata) {
+        setMediaKind(metadata.mediaKind)
         iconView.image = metadata.icon
         titleLabel.stringValue = metadata.displayName
         subtitleLabel.stringValue = "\(metadata.typeDescription) • .\(metadata.fileExtension)"
-        compactHintLabel.stringValue = "Column preview stays paused. Press Space for the full Quick Look player."
+        compactHintLabel.stringValue = metadata.mediaKind == .audioOnly
+            ? "Column preview stays paused. Press Space for the full Quick Look audio preview."
+            : "Column preview stays paused. Press Space for the full Quick Look player."
         detailsLabel.stringValue = """
         Path: \(metadata.fileURL.path)
         Size: \(metadata.fileSizeDescription)
         Modified: \(metadata.modifiedDateDescription)
         """
-        statusLabel.stringValue = "Opening with VLCKit..."
+        statusLabel.stringValue = metadata.mediaKind == .audioOnly
+            ? "Opening audio with VLCKit..."
+            : "Opening with VLCKit..."
         playbackButton.isEnabled = true
         seekSlider.isEnabled = false
         volumeSlider.isEnabled = true
+    }
+
+    func setMediaKind(_ mediaKind: PreviewMediaKind) {
+        self.mediaKind = mediaKind
+        refreshLayoutForCurrentMode()
+        refreshPlaceholderVisibility()
     }
 
     func applyPlaceholder(title: String, subtitle: String, details: String, status: String, symbolName: String = "play.rectangle") {
@@ -241,6 +261,8 @@ final class PreviewContentView: NSView {
             stackTopConstraint?.constant = 24
             stackBottomConstraint?.constant = -24
         }
+
+        refreshLayoutForCurrentMode()
     }
 
     func updatePlaybackMetrics(_ metrics: MediaPreviewPlaybackMetrics) {
@@ -267,7 +289,7 @@ final class PreviewContentView: NSView {
             playbackButton.isEnabled = true
             placeholderLabel.stringValue = "Ready to play"
         case .opening:
-            statusLabel.stringValue = "Opening media..."
+            statusLabel.stringValue = mediaKind == .audioOnly ? "Opening audio..." : "Opening media..."
             playbackButton.title = "Pause"
             playbackButton.isEnabled = true
             placeholderLabel.stringValue = "Preparing video surface..."
@@ -277,7 +299,9 @@ final class PreviewContentView: NSView {
             playbackButton.isEnabled = true
             placeholderLabel.stringValue = "Buffering..."
         case .playing:
-            statusLabel.stringValue = "Playing original file directly through VLCKit."
+            statusLabel.stringValue = mediaKind == .audioOnly
+                ? "Playing original audio file directly through VLCKit."
+                : "Playing original file directly through VLCKit."
             playbackButton.title = "Pause"
             playbackButton.isEnabled = true
         case .paused:
@@ -506,7 +530,22 @@ final class PreviewContentView: NSView {
         videoCanvasView.frame = VideoLayout.fittedRect(contentSize: videoPresentationSize, in: safeBounds).integral
     }
 
+    private func refreshLayoutForCurrentMode() {
+        let isExpanded = compactHintLabel.isHidden
+
+        if isExpanded {
+            let shouldHideVideoFrame = mediaKind == .audioOnly
+            videoFrameView.isHidden = shouldHideVideoFrame
+            badgeLabel.isHidden = shouldHideVideoFrame
+        }
+    }
+
     private func refreshPlaceholderVisibility() {
+        guard mediaKind == .video else {
+            placeholderLabel.isHidden = true
+            return
+        }
+
         let shouldHidePlaceholder: Bool
 
         switch currentPlaybackState {

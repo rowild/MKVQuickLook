@@ -3,6 +3,14 @@ import CoreGraphics
 import XCTest
 
 final class VideoLayoutTests: XCTestCase {
+    func testPreviewMetadataTreatsOpusAsAudio() {
+        XCTAssertEqual(PreviewMetadata.mediaKind(for: "opus"), .audioOnly)
+        XCTAssertEqual(
+            PreviewMetadata.typeDescription(for: "opus", contentTypeDescription: nil),
+            "Opus Audio"
+        )
+    }
+
     func testCentersFourByThreeVideoInsideWideBounds() {
         let rect = VideoLayout.fittedRect(
             contentSize: CGSize(width: 512, height: 384),
@@ -61,6 +69,51 @@ final class VideoLayoutTests: XCTestCase {
         previewView.updatePlaybackState(.buffering)
         XCTAssertTrue(previewView.isPlaybackButtonEnabledForTesting)
     }
+
+    @MainActor
+    func testAudioOnlyExpandedModeHidesVideoFrameAndKeepsControlsVisible() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setMediaKind(.audioOnly)
+        previewView.setPresentationMode(.expanded)
+        previewView.updatePlaybackState(.paused)
+
+        XCTAssertTrue(previewView.isVideoFrameHiddenForTesting)
+        XCTAssertFalse(previewView.isControlsRowHiddenForTesting)
+    }
+
+    @MainActor
+    func testReplacingPlayerStopsPreviousPlayer() {
+        let current = PlayerSpy()
+        let next = PlayerSpy()
+
+        let replaced = MediaPreviewPlayerSession.replace(current: current, with: next)
+
+        XCTAssertTrue(current.stopCalled)
+        XCTAssertTrue(replaced === next)
+    }
+}
+
+@MainActor
+private final class PlayerSpy: MediaPreviewPlayer {
+    let renderView = NSView()
+    var playbackStateDidChange: ((MediaPreviewPlaybackState) -> Void)?
+    var playbackMetricsDidChange: ((MediaPreviewPlaybackMetrics) -> Void)?
+    var videoPresentationSizeDidChange: ((CGSize?) -> Void)?
+    var videoOutputVisibilityDidChange: ((Bool) -> Void)?
+    private(set) var stopCalled = false
+
+    func loadMedia(from url: URL) {}
+    func primeForPausedStart() {}
+    func play() {}
+    func pause() {}
+    func setMuted(_ muted: Bool) {}
+    func setVolume(_ volume: Int, interactionID: PlaybackDiagnostics.InteractionID?) {}
+    func beginScrubbing(interactionID: PlaybackDiagnostics.InteractionID?) {}
+    func endScrubbing(interactionID: PlaybackDiagnostics.InteractionID?) {}
+    func seek(to position: Float, isFinal: Bool, interactionID: PlaybackDiagnostics.InteractionID?) {}
+    func refreshVideoLayout() {}
+    func togglePlayback() {}
+    func stop() { stopCalled = true }
 }
 
 @MainActor

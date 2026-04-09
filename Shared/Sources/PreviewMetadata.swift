@@ -1,10 +1,16 @@
 import AppKit
 import Foundation
 
+enum PreviewMediaKind: Equatable {
+    case video
+    case audioOnly
+}
+
 struct PreviewMetadata {
     let fileURL: URL
     let displayName: String
     let fileExtension: String
+    let mediaKind: PreviewMediaKind
     let typeDescription: String
     let fileSizeDescription: String
     let modifiedDateDescription: String
@@ -21,10 +27,20 @@ struct PreviewMetadata {
         self.fileURL = fileURL
         displayName = resourceValues.name ?? fileURL.lastPathComponent
         fileExtension = fileURL.pathExtension.lowercased()
+        mediaKind = Self.mediaKind(for: fileExtension)
         typeDescription = Self.typeDescription(for: fileExtension, contentTypeDescription: resourceValues.contentType?.localizedDescription)
         fileSizeDescription = Self.fileSizeDescription(bytes: resourceValues.fileSize)
         modifiedDateDescription = Self.modifiedDateDescription(resourceValues.contentModificationDate)
         icon = NSWorkspace.shared.icon(forFile: fileURL.path)
+    }
+
+    static func mediaKind(for fileExtension: String) -> PreviewMediaKind {
+        switch fileExtension {
+        case "opus":
+            return .audioOnly
+        default:
+            return .video
+        }
     }
 
     static func typeDescription(for fileExtension: String, contentTypeDescription: String?) -> String {
@@ -41,6 +57,8 @@ struct PreviewMetadata {
             return "Ogg Video"
         case "avi":
             return "AVI Video"
+        case "opus":
+            return "Opus Audio"
         default:
             return "Media File"
         }

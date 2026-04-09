@@ -74,6 +74,18 @@
 				<string>com.robertwildling.mkvquicklook.avi</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Opus Audio</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.robertwildling.mkvquicklook.opus</string>
+			</array>
+		</dict>
 	</array>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
@@ -169,6 +181,31 @@
 				<array>
 					<string>video/x-msvideo</string>
 					<string>video/avi</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.audio</string>
+				<string>public.audiovisual-content</string>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Opus Audio</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.robertwildling.mkvquicklook.opus</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>opus</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>audio/opus</string>
+					<string>audio/ogg</string>
+					<string>application/ogg</string>
 				</array>
 			</dict>
 		</dict>

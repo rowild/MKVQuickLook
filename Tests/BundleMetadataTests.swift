@@ -9,12 +9,18 @@ final class BundleMetadataTests: XCTestCase {
         XCTAssertTrue(exportedTypes.contains(where: { ($0["UTTypeIdentifier"] as? String) == "com.robertwildling.mkvquicklook.webm" }))
         XCTAssertTrue(exportedTypes.contains(where: { ($0["UTTypeIdentifier"] as? String) == "com.robertwildling.mkvquicklook.ogg-video" }))
         XCTAssertTrue(exportedTypes.contains(where: { ($0["UTTypeIdentifier"] as? String) == "com.robertwildling.mkvquicklook.avi" }))
+        XCTAssertTrue(exportedTypes.contains(where: { ($0["UTTypeIdentifier"] as? String) == "com.robertwildling.mkvquicklook.opus" }))
 
         let documentTypes = try XCTUnwrap(info["CFBundleDocumentTypes"] as? [[String: Any]])
         XCTAssertTrue(documentTypes.contains(where: {
             ($0["CFBundleTypeRole"] as? String) == "Viewer"
                 && ($0["LSHandlerRank"] as? String) == "Owner"
                 && (($0["LSItemContentTypes"] as? [String])?.contains("com.robertwildling.mkvquicklook.mkv") == true)
+        }))
+        XCTAssertTrue(documentTypes.contains(where: {
+            ($0["CFBundleTypeRole"] as? String) == "Viewer"
+                && ($0["LSHandlerRank"] as? String) == "Owner"
+                && (($0["LSItemContentTypes"] as? [String])?.contains("com.robertwildling.mkvquicklook.opus") == true)
         }))
     }
 
@@ -28,6 +34,8 @@ final class BundleMetadataTests: XCTestCase {
         XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.webm"))
         XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.ogg-video"))
         XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.avi"))
+        XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.opus"))
+        XCTAssertTrue(supportedTypes.contains("org.xiph.opus"))
     }
 
     private func appInfoDictionary() throws -> [String: Any] {

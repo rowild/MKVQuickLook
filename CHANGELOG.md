@@ -1,5 +1,20 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Added owned `.opus` audio support in the app and extension metadata.
+- Added an audio-only Quick Look mode that keeps playback controls visible without showing an empty video frame.
+
+### Fixed
+
+- Switching to another file while a preview is already open now stops the previous player before the new one is attached, preventing stray audio from continuing in the background.
+
+### Notes
+
+- `.opus` is audio-only support, not video support hidden behind another extension.
+
 ## 0.1.3 - 2026-04-09
 
 ### Changed

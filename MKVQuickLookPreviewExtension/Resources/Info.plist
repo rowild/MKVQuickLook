@@ -35,11 +35,13 @@
 				<string>org.xiph.ogv</string>
 				<string>org.videolan.ogg-audio</string>
 				<string>org.xiph.ogg.vorbis</string>
+				<string>org.xiph.opus</string>
 				<string>public.avi</string>
 				<string>com.robertwildling.mkvquicklook.mkv</string>
 				<string>com.robertwildling.mkvquicklook.webm</string>
 				<string>com.robertwildling.mkvquicklook.ogg-video</string>
 				<string>com.robertwildling.mkvquicklook.avi</string>
+				<string>com.robertwildling.mkvquicklook.opus</string>
 			</array>
 			<key>QLSupportsSearchableItems</key>
 			<false/>

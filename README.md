@@ -7,11 +7,20 @@ macOS host app plus Quick Look Preview Extension scaffold for:
 - `mkv`
 - `webm`
 - `ogg` / `ogv`
+- `opus` (audio-only)
 - `avi` (best-effort)
 
 `MKVQuickLook` provides a Finder Quick Look preview for these formats on macOS by shipping a small host app with a bundled Quick Look Preview Extension and embedded `VLCKit` playback backend.
 
 ![MKVQuickLook screenshot](screenshot.png)
+
+## Gatekeeper
+
+This app is currently distributed as an ad hoc signed DMG build and is **not notarized**.
+
+- macOS Gatekeeper may warn when users open it for the first time.
+- That is expected for the current release process.
+- Users may need to open it via Finder context menu or allow it in System Settings after the first launch attempt.
 
 Current status:
 
@@ -19,6 +28,7 @@ Current status:
 - Quick Look Preview Extension registered for owned target file types
 - `VLCKit 3.7.2` fetched into `Vendor/` by a bootstrap script
 - direct VLCKit-backed playback path for supported files
+- audio-only `.opus` files use the same VLCKit backend with an audio preview UI instead of a video frame
 - Finder registration and Launch Services ownership wired into the app bundle metadata
 - playback defaults to paused in Quick Look
 - renderer, metadata, and UI regressions covered by automated tests
@@ -207,6 +217,7 @@ Suggested local contents:
 
 - one or more `.mkv` files, including at least one problematic real-world sample
 - one `.webm` file
+- one `.opus` audio-only sample
 - one `.ogv` or Theora-in-Ogg sample if Ogg video support is being tested
 - one `.avi` sample if AVI behavior is being checked
 

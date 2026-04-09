@@ -74,6 +74,8 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
                 self?.previewContentView.setVideoOutputVisible(isVisible)
             }
 
+            self.player = MediaPreviewPlayerSession.replace(current: self.player, with: player)
+
             await MainActor.run {
                 title = metadata.displayName
                 previewContentView.apply(metadata: metadata)
@@ -81,7 +83,6 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             }
 
             currentFileURL = url
-            self.player = player
             isMediaLoaded = false
             updatePresentationModeAndPlayback()
         } catch {

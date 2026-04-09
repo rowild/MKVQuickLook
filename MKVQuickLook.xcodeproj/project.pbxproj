@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0185A1E4CAD0F2536931685A /* VLCVideoLayerHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21ACF4081841AC895F797878 /* VLCVideoLayerHostView.swift */; };
+		04AD3364848C6C9F1181F5D9 /* MediaPreviewPlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */; };
 		05ED2B3AB06CF53FBE41C024 /* VLCKitMediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */; };
 		09D842054D1327F0CDE6FC1D /* VLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 26CCAD556DF88A26642D0486 /* VLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		1BADCE5D6CF31C5D0C3EA530 /* VLCVideoLayerHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21ACF4081841AC895F797878 /* VLCVideoLayerHostView.swift */; };
@@ -22,6 +23,7 @@
 		3A5AC45C4441D15E3D0021C5 /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9165C63B0A4167A6AFEAA0 /* PreviewViewController.swift */; };
 		3C2B58691ED0D8F1CEFD730F /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E1EE6E8B183958E809ED768 /* VideoToolbox.framework */; };
 		3DA12CC066C56B61251996AB /* VideoLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82538038139633F4454BF3B8 /* VideoLayout.swift */; };
+		3E4C4A83A07B01771B7AF288 /* MediaPreviewPlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */; };
 		4F70B1768253CC6D0CC94E8B /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6820EDD7105300E0B3C6FE /* MainWindowView.swift */; };
 		509B4B27E2803EB4E4308002 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71B770A4F3058220E670AE4D /* AVFoundation.framework */; };
 		5309DF9B48353020DDF8B815 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40C73021684F36F46E4F3AE6 /* Quartz.framework */; };
@@ -53,6 +55,7 @@
 		C97CB0AA2C6918F5835F1B7B /* MediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9555F7EA3CD226932F56DAAE /* MediaPreviewPlayer.swift */; };
 		CAB6B7393F69C8566D3F07B1 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1884C5B428369DD10604A5FC /* QuartzCore.framework */; };
 		CB5E07E8C6A42B9D1D2956A5 /* PlaybackDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = CED5357DF3752411CC0A8B1E /* PlaybackDiagnostics.swift */; };
+		D483E2EB8422615968CDFAAA /* MediaPreviewPlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */; };
 		E020F82932673E6AAAEF9802 /* VideoLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82538038139633F4454BF3B8 /* VideoLayout.swift */; };
 		E41C8BF1F4FACA82DDD6B11D /* PreviewMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBFF00EB96786F2F91B23B6 /* PreviewMetadata.swift */; };
 		E58CE0689863AA40D25FF392 /* VLCVideoLayerHostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21ACF4081841AC895F797878 /* VLCVideoLayerHostView.swift */; };
@@ -154,6 +157,7 @@
 		CED5357DF3752411CC0A8B1E /* PlaybackDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackDiagnostics.swift; sourceTree = "<group>"; };
 		D74DAEB38D6766046DE5347E /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E3D0BF10236F4D4666B61CC1 /* MKVQuickLookPreviewExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MKVQuickLookPreviewExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewPlayerSession.swift; sourceTree = "<group>"; };
 		E78A20ACD8AECE98CB1DFA53 /* AppStatusViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStatusViewModel.swift; sourceTree = "<group>"; };
 		F9D991977061BA25D21BFB70 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
@@ -215,6 +219,7 @@
 			isa = PBXGroup;
 			children = (
 				9555F7EA3CD226932F56DAAE /* MediaPreviewPlayer.swift */,
+				E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */,
 				B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */,
 				21ACF4081841AC895F797878 /* VLCVideoLayerHostView.swift */,
 			);
@@ -424,6 +429,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C97CB0AA2C6918F5835F1B7B /* MediaPreviewPlayer.swift in Sources */,
+				D483E2EB8422615968CDFAAA /* MediaPreviewPlayerSession.swift in Sources */,
 				C6DD68259D9A89D903E9238C /* PlaybackDiagnostics.swift in Sources */,
 				EC0DB67FA2FA5419279BD272 /* PreviewContentView.swift in Sources */,
 				E41C8BF1F4FACA82DDD6B11D /* PreviewMetadata.swift in Sources */,
@@ -440,6 +446,7 @@
 			files = (
 				EBDBACD66302E999D1234CA4 /* BundleMetadataTests.swift in Sources */,
 				904DAA5E391982B8C176884E /* MediaPreviewPlayer.swift in Sources */,
+				04AD3364848C6C9F1181F5D9 /* MediaPreviewPlayerSession.swift in Sources */,
 				CB5E07E8C6A42B9D1D2956A5 /* PlaybackDiagnostics.swift in Sources */,
 				2B88CFF90BCF0FB3170CED64 /* PreviewContentView.swift in Sources */,
 				EF7ADB30C280537CC95076AB /* PreviewMetadata.swift in Sources */,
@@ -458,6 +465,7 @@
 				1F289B33F3D8F5093D940555 /* MKVQuickLookApp.swift in Sources */,
 				4F70B1768253CC6D0CC94E8B /* MainWindowView.swift in Sources */,
 				9E318696532BB1FD7D431823 /* MediaPreviewPlayer.swift in Sources */,
+				3E4C4A83A07B01771B7AF288 /* MediaPreviewPlayerSession.swift in Sources */,
 				AB22A85B3CECA21C04A68B5F /* PlaybackDiagnostics.swift in Sources */,
 				2E90D1CC045B923E1911504B /* PlaybackLabViewController.swift in Sources */,
 				578CD529E1ABB780CD20B7BF /* PlaybackLabWindowView.swift in Sources */,
