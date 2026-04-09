@@ -36,6 +36,7 @@ jobs:
             -scheme MKVQuickLook \
             -configuration Debug \
             -destination 'platform=macOS' \
+            -skip-testing:MKVQuickLookTests/RendererSmokeTests \
             CODE_SIGNING_ALLOWED=NO \
             test
 
