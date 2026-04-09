@@ -140,6 +140,28 @@ gh release create v0.1.1 dist/MKVQuickLook-v0.1.1.dmg \
 
 That gives users a normal release download page while keeping the Git repository smaller and cleaner.
 
+## Automatic GitHub Releases
+
+This repository now includes a GitHub Actions workflow at [`.github/workflows/release.yml`](/Users/robertwildling/Desktop/_WWW/_MKVQuickLook/.github/workflows/release.yml).
+
+Behavior:
+
+- pushing a tag matching `v*` triggers the workflow
+- the workflow runs the test suite
+- it builds the DMG with `./scripts/build-release-dmg.sh`
+- it creates or updates the GitHub Release for that tag
+- it uploads the generated DMG as a release asset
+
+Typical release flow:
+
+```sh
+git push origin main
+git tag v0.1.1
+git push origin v0.1.1
+```
+
+That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.
+
 ## Local Testing
 
 1. Build the app in Xcode or with `xcodebuild`.
