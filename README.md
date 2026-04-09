@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.1` (`build 2`)
+Version: `0.1.3` (`build 4`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -131,8 +131,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.1`.
-5. Set the release title, for example `v0.1.1`.
+4. Create or select a tag such as `v0.1.3`.
+5. Set the release title, for example `v0.1.3`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -141,11 +141,11 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.3
+git push origin v0.1.3
 
-gh release create v0.1.1 dist/MKVQuickLook-v0.1.1.dmg \
-  --title "v0.1.1" \
+gh release create v0.1.3 dist/MKVQuickLook-v0.1.3.dmg \
+  --title "v0.1.3" \
   --notes-file CHANGELOG.md
 ```
 
@@ -159,7 +159,7 @@ Behavior:
 
 - pushing a tag matching `v*` triggers the workflow
 - the workflow bootstraps `VLCKit`
-- the workflow runs the test suite
+- the workflow runs the non-GUI test suite
 - it builds the DMG with `./scripts/build-release-dmg.sh`
 - it creates or updates the GitHub Release for that tag
 - it uploads the generated DMG as a release asset
@@ -168,11 +168,18 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.1
-git push origin v0.1.1
+git tag v0.1.3
+git push origin v0.1.3
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.
+
+Important:
+
+- the DMG asset does not appear instantly on the Release page
+- GitHub first shows the automatic source archives
+- the DMG appears only after the GitHub Actions `Release` workflow finishes successfully
+- if the DMG is missing, check the `Actions` tab first
 
 ## Local Testing
 

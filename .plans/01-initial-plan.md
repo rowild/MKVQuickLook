@@ -2,8 +2,8 @@
 
 Version snapshot:
 
-- release version: `0.1.1`
-- build number: `2`
+- release version: `0.1.3`
+- build number: `4`
 - snapshot date: `2026-04-09`
 
 ## Goal
@@ -60,12 +60,13 @@ This was a deliberate change. Autoplay in the small Finder preview was too disru
 
 ### Playback Backend
 
-The project uses bundled `VLCKit`.
+The project uses bundled-at-build-time `VLCKit`.
 
 Important packaging decision:
 
-- `VLCKit` is vendored inside the repo and embedded into the `.appex`
-- it is not downloaded at runtime
+- `VLCKit` is bootstrapped by script into `Vendor/` for development and CI
+- it is embedded into the `.appex` at build time
+- it is not downloaded at runtime by the shipped app
 - it does not need to be preinstalled on the user’s Mac
 
 This is the correct distribution model for this project.
@@ -194,6 +195,12 @@ The renderer tests:
 - require a readable snapshot frame to be produced
 
 If these tests fail, do not ship the change.
+
+Important CI exception:
+
+- these smoke tests are intentionally skipped in the GitHub Release workflow
+- reason: they depend on visible AppKit/VLCKit rendering and are not reliable on hosted release runners
+- they remain mandatory for local verification
 
 ### Metadata Tests
 

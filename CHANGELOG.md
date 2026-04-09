@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.1.3 - 2026-04-09
+
+### Changed
+
+- Replaced the committed `VLCKit` binary payload with a pinned bootstrap download script.
+- Updated install, DMG-build, and GitHub Actions release paths to fetch `VLCKit` automatically when needed.
+- Updated the GitHub Actions release workflow to skip `RendererSmokeTests` at the `xcodebuild` layer so the DMG packaging path can complete on GitHub-hosted macOS runners.
+- Clarified the README release flow so the asynchronous DMG upload behavior on GitHub Releases is easier to understand.
+
+### Fixed
+
+- Reduced repository bloat by removing the tracked `VLCKit` runtime payload and generated release artifacts from Git history.
+- Fixed the release pipeline so a tagged GitHub Actions run can finish and attach a downloadable DMG asset to the GitHub Release.
+
+### Notes
+
+- Local development still keeps the full renderer smoke tests.
+- GitHub release runs intentionally skip only the GUI renderer smoke tests; the metadata and layout tests still run in CI.
+
+## 0.1.2 - 2026-04-09
+
+### Changed
+
+- Added automatic tag-driven GitHub Release automation with a macOS GitHub Actions workflow.
+- Added a script to build a release DMG and upload-ready release artifacts.
+- Added developer and release documentation for GitHub Releases, ignored build artifacts, and repository size policy.
+
+### Notes
+
+- `v0.1.2` was the first automated-release attempt and exposed CI incompatibility in the renderer smoke tests.
+
 ## 0.1.1 - 2026-04-09
 
 ### Added
