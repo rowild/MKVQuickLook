@@ -55,9 +55,17 @@ pluginkit -a "$EXTENSION_PATH" >/dev/null 2>&1 || true
 echo "==> Opening app once to help extension discovery"
 open "$INSTALLED_APP_PATH"
 
+APP_VERSION="$(defaults read "$INSTALLED_APP_PATH/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "unknown")"
+APP_BUILD="$(defaults read "$INSTALLED_APP_PATH/Contents/Info" CFBundleVersion 2>/dev/null || echo "unknown")"
+PLUGIN_VERSION="$(pluginkit -m -A -D -i com.robertwildling.MKVQuickLook.PreviewExtension 2>/dev/null | sed -E -n 's/.*\(([^)]*)\).*/\1/p' | head -n 1)"
+
 echo
 echo "Installed app:"
 echo "  $INSTALLED_APP_PATH"
+echo "Installed version:"
+echo "  $APP_VERSION (build $APP_BUILD)"
+echo "Registered extension version:"
+echo "  ${PLUGIN_VERSION:-unknown}"
 echo
 echo "Next step:"
 echo "  In Finder, select a supported sample file and press Space."
