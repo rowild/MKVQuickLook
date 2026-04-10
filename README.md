@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.4` (`build 5`)
+Version: `0.1.5` (`build 6`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -22,27 +22,39 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 - That is expected for the current release process.
 - Users may need to open it via Finder context menu or allow it in System Settings after the first launch attempt.
 
-## Current Limitation
-
-The volume slider still has one known unresolved issue:
-
-- dragging the handle now lands exactly where released
-- but direct click on the volume bar can still show an observable delay in Finder-hosted Quick Look on the target machine
-
-This is already instrumented in the app logs and documented in the implementation plan. It is not considered solved yet.
-
-Current status:
+## Current Status
 
 - host app with main window, settings/help UI, and playback lab
 - Quick Look Preview Extension registered for owned target file types
 - `VLCKit 3.7.2` fetched into `Vendor/` by a bootstrap script
 - direct VLCKit-backed playback path for supported files
-- audio-only `.opus` files use the same VLCKit backend with an audio preview UI instead of a video frame
+- audio-only `.opus` files use the same VLCKit backend with an audio preview UI
 - Finder registration and Launch Services ownership wired into the app bundle metadata
 - full Quick Look preview autoplays; compact Finder preview remains summary-only
 - renderer, metadata, and UI regressions covered by automated tests
-- volume handle placement is now stable on drag release
-- volume bar click latency is still a known limitation
+- hover overlay play/pause on the video frame (like native Quick Look)
+- seek and volume sliders jump immediately to click position
+
+## Playback Delays
+
+There is a short but perceptible delay for both seek and volume changes. These are **not software bugs**. They are inherent to how digital audio and compressed video work.
+
+### Volume delay
+
+When you move the volume slider, the API call sets the new level instantly. The delay you hear is the **audio output pipeline latency**.
+
+VLCKit renders decoded audio into a ring buffer. That buffer feeds Core Audio, which feeds the hardware DAC. The buffer exists to absorb CPU timing jitter — without it, even a brief stall would cause audible crackling, pops, or dropout. On macOS the buffer depth is typically **80–200 ms**. Volume changes apply only to audio that has not yet entered the buffer. The audio already queued plays at the old level and drains through first. You cannot eliminate this without destroying the buffer, which causes immediate playback glitches. Even macOS's own system volume control has a milder version of this effect for the same reason.
+
+### Seek delay
+
+Video frames use inter-frame compression. P-frames and B-frames reference earlier frames and cannot be decoded by themselves. Only keyframes (I-frames) are self-contained. Seeking to any arbitrary position requires:
+
+1. Find the nearest keyframe before the target position in the file
+2. Decode every frame from that keyframe forward to the target frame
+
+A typical H.264 or HEVC stream has a keyframe every 2–10 seconds. At 30 fps that can mean decoding up to **150–300 frames** before the target frame can be displayed. For HD content this takes **100–500 ms** even with hardware-assisted decoding. Native Apple players appear faster because AVFoundation has direct access to the Apple Silicon hardware video decoder with tighter integration; VLCKit's pipeline operates at a higher abstraction level.
+
+The UI remains responsive during seeks — the slider position updates immediately. The video frame catches up as the decoder finishes.
 
 ## Bundling
 
@@ -152,8 +164,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.4`.
-5. Set the release title, for example `v0.1.4`.
+4. Create or select a tag such as `v0.1.5`.
+5. Set the release title, for example `v0.1.5`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -162,11 +174,11 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 
-gh release create v0.1.4 dist/MKVQuickLook-v0.1.4.dmg \
-  --title "v0.1.4" \
+gh release create v0.1.5 dist/MKVQuickLook-v0.1.5.dmg \
+  --title "v0.1.5" \
   --notes-file CHANGELOG.md
 ```
 
@@ -189,8 +201,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.

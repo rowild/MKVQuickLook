@@ -5,77 +5,136 @@ enum PreviewPresentationMode {
     case expanded
 }
 
+// MARK: - TrackingSlider
+
 private final class TrackingSlider: NSSlider {
     var trackingStateDidChange: ((Bool) -> Void)?
     private(set) var isTrackingInteraction = false
-    private var wasDraggedDuringInteraction = false
 
+    // Custom mouseDown replaces AppKit's default page-step behavior with an
+    // immediate jump to the click position. beginScrubbing (trackingStateDidChange
+    // true) is deferred until the first actual drag event — so a simple click never
+    // triggers a pause/resume cycle in the player.
     override func mouseDown(with event: NSEvent) {
-        if shouldHandleAsTrackClick(event) {
-            isTrackingInteraction = true
-            wasDraggedDuringInteraction = false
-            trackingStateDidChange?(true)
-            _ = applyImmediateMouseDownValue(for: event)
+        guard isEnabled else { return }
+
+        // Immediately move knob to click position for visual feedback (no action yet).
+        setValueFromMouseLocation(event)
+
+        var didDrag = false
+
+        window?.trackEvents(
+            matching: [.leftMouseDragged, .leftMouseUp],
+            timeout: .infinity,
+            mode: .eventTracking
+        ) { [weak self] evt, stop in
+            guard let self, let evt else { stop.pointee = true; return }
+            switch evt.type {
+            case .leftMouseDragged:
+                if !didDrag {
+                    didDrag = true
+                    self.isTrackingInteraction = true
+                    self.trackingStateDidChange?(true)
+                }
+                self.setValueFromMouseLocation(evt, fireAction: true)
+            case .leftMouseUp:
+                stop.pointee = true
+            default:
+                break
+            }
+        }
+
+        if didDrag {
             isTrackingInteraction = false
             trackingStateDidChange?(false)
-            return
+        } else {
+            // Plain click with no drag: fire action once as a final change.
+            sendControlAction()
         }
-
-        isTrackingInteraction = true
-        wasDraggedDuringInteraction = false
-        trackingStateDidChange?(true)
-        super.mouseDown(with: event)
-        isTrackingInteraction = false
-        trackingStateDidChange?(false)
     }
 
-    override func mouseDragged(with event: NSEvent) {
-        wasDraggedDuringInteraction = true
-        super.mouseDragged(with: event)
-    }
-
-    private func shouldHandleAsTrackClick(_ event: NSEvent) -> Bool {
-        guard isEnabled,
-              let sliderCell = cell as? NSSliderCell else {
-            return false
-        }
-
-        let location = convert(event.locationInWindow, from: nil)
-        let knobRect = sliderCell.knobRect(flipped: isFlipped)
-        return !knobRect.contains(location)
-    }
-
-    private func applyImmediateMouseDownValue(for event: NSEvent) -> Double? {
-        guard isEnabled,
-              let sliderCell = cell as? NSSliderCell else {
-            return nil
-        }
-
+    private func setValueFromMouseLocation(_ event: NSEvent, fireAction: Bool = false) {
+        guard let sliderCell = cell as? NSSliderCell else { return }
         let location = convert(event.locationInWindow, from: nil)
         let barRect = sliderCell.barRect(flipped: isFlipped)
-        guard barRect.width > 0 else {
-            return nil
-        }
-
-        let clampedFraction = min(max((location.x - barRect.minX) / barRect.width, 0), 1)
-        let targetValue = minValue + Double(clampedFraction) * (maxValue - minValue)
-        guard abs(doubleValue - targetValue) > .ulpOfOne else {
-            return nil
-        }
-
-        doubleValue = targetValue
-        sendActionToTarget()
-        return targetValue
+        guard barRect.width > 0 else { return }
+        let fraction = min(max((location.x - barRect.minX) / barRect.width, 0), 1)
+        doubleValue = minValue + fraction * (maxValue - minValue)
+        if fireAction { sendControlAction() }
     }
 
-    private func sendActionToTarget() {
-        guard let action else {
-            return
-        }
-
+    private func sendControlAction() {
+        guard let action else { return }
         NSApp.sendAction(action, to: target, from: self)
     }
 }
+
+// MARK: - PlayPauseOverlayView
+
+private final class PlayPauseOverlayView: NSView {
+    var clickHandler: (() -> Void)?
+
+    private let iconCircle = NSView()
+    private let iconView = NSImageView()
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        configureView()
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    private func configureView() {
+        wantsLayer = true
+
+        iconCircle.wantsLayer = true
+        iconCircle.layer?.backgroundColor = NSColor.black.withAlphaComponent(0.52).cgColor
+        iconCircle.layer?.cornerRadius = 32
+        iconCircle.translatesAutoresizingMaskIntoConstraints = false
+
+        iconView.imageScaling = .scaleProportionallyUpOrDown
+        iconView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 26, weight: .medium)
+        iconView.contentTintColor = .white
+        iconView.image = NSImage(systemSymbolName: "play.fill", accessibilityDescription: "Play")
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+
+        addSubview(iconCircle)
+        iconCircle.addSubview(iconView)
+
+        NSLayoutConstraint.activate([
+            iconCircle.centerXAnchor.constraint(equalTo: centerXAnchor),
+            iconCircle.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconCircle.widthAnchor.constraint(equalToConstant: 64),
+            iconCircle.heightAnchor.constraint(equalToConstant: 64),
+            iconView.centerXAnchor.constraint(equalTo: iconCircle.centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: iconCircle.centerYAnchor),
+        ])
+    }
+
+    func setIcon(isPlaying: Bool) {
+        let name = isPlaying ? "pause.fill" : "play.fill"
+        let description = isPlaying ? "Pause" : "Play"
+        iconView.image = NSImage(systemSymbolName: name, accessibilityDescription: description)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        clickHandler?()
+    }
+
+    // Only intercept hits when visible so clicks pass through when overlay is faded out.
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        guard alphaValue > 0.05 else { return nil }
+        return super.hitTest(point)
+    }
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override var isOpaque: Bool { false }
+}
+
+// MARK: - PreviewContentView
 
 final class PreviewContentView: NSView {
     var playbackToggleHandler: (() -> Void)?
@@ -92,6 +151,7 @@ final class PreviewContentView: NSView {
     private let compactHintLabel = NSTextField(wrappingLabelWithString: "Column preview stays paused. Press Space for the full Quick Look player.")
     private let detailsLabel = NSTextField(wrappingLabelWithString: "")
     private let statusLabel = NSTextField(wrappingLabelWithString: "")
+    private let bufferingNoteLabel = NSTextField(wrappingLabelWithString: "Note: seek and volume changes may have a short delay. This is caused by VLCKit's audio/video pipeline buffering and cannot be avoided without introducing playback glitches.")
     private let videoFrameView = NSView()
     private let videoCanvasView = NSView()
     private let placeholderLabel = NSTextField(labelWithString: "Preparing video surface...")
@@ -103,6 +163,7 @@ final class PreviewContentView: NSView {
     private let volumeLabel = NSTextField(labelWithString: "Volume")
     private let controlsRow = NSStackView()
     private let badgeLabel = NSTextField(labelWithString: "MKVQuickLook / VLCKit")
+    private let playPauseOverlay = PlayPauseOverlayView()
     private var attachedRenderView: NSView?
     private var isUpdatingSeekSlider = false
     private var videoMinimumHeightConstraint: NSLayoutConstraint?
@@ -116,6 +177,8 @@ final class PreviewContentView: NSView {
     private var currentPlaybackState: MediaPreviewPlaybackState = .idle
     private var isVideoOutputVisible = false
     private var mediaKind: PreviewMediaKind = .video
+
+    // MARK: Testing accessors
 
     var isPlaceholderVisibleForTesting: Bool {
         !placeholderLabel.isHidden
@@ -145,6 +208,8 @@ final class PreviewContentView: NSView {
         volumeSlider.doubleValue = value
     }
 
+    // MARK: Init
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         configureView()
@@ -155,11 +220,38 @@ final class PreviewContentView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    // MARK: Layout
+
     override func layout() {
         super.layout()
         layoutVideoCanvas()
         attachedRenderView?.frame = videoCanvasView.bounds
     }
+
+    // MARK: Mouse tracking (hover overlay)
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        // Tracking area is set up once in configureView using .inVisibleRect,
+        // which handles automatic bounds updates — no manual refresh needed here.
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        guard !videoFrameView.isHidden else { return }
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.15
+            playPauseOverlay.animator().alphaValue = 1
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.25
+            playPauseOverlay.animator().alphaValue = 0
+        }
+    }
+
+    // MARK: Public API
 
     func apply(metadata: PreviewMetadata) {
         setMediaKind(metadata.mediaKind)
@@ -256,6 +348,7 @@ final class PreviewContentView: NSView {
             compactHintLabel.isHidden = false
             detailsLabel.isHidden = true
             statusLabel.isHidden = true
+            bufferingNoteLabel.isHidden = true
             badgeLabel.isHidden = true
             placeholderLabel.isHidden = true
             titleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
@@ -272,11 +365,11 @@ final class PreviewContentView: NSView {
             stackBottomConstraint?.constant = -12
         case .expanded:
             videoFrameView.isHidden = false
-            playbackButton.isHidden = false
             controlsRow.isHidden = false
             compactHintLabel.isHidden = true
             detailsLabel.isHidden = false
             statusLabel.isHidden = false
+            bufferingNoteLabel.isHidden = false
             badgeLabel.isHidden = false
             placeholderLabel.isHidden = false
             placeholderLabel.stringValue = "Preparing video surface..."
@@ -353,6 +446,15 @@ final class PreviewContentView: NSView {
             return
         }
 
+        let isActivePlaying: Bool
+        switch state {
+        case .playing, .opening, .buffering:
+            isActivePlaying = true
+        default:
+            isActivePlaying = false
+        }
+        playPauseOverlay.setIcon(isPlaying: isActivePlaying)
+
         refreshPlaceholderVisibility()
     }
 
@@ -360,6 +462,8 @@ final class PreviewContentView: NSView {
         isVideoOutputVisible = isVisible
         refreshPlaceholderVisibility()
     }
+
+    // MARK: Private setup
 
     private func configureView() {
         wantsLayer = true
@@ -410,10 +514,15 @@ final class PreviewContentView: NSView {
         statusLabel.font = .systemFont(ofSize: 14)
         statusLabel.maximumNumberOfLines = 0
 
+        bufferingNoteLabel.font = .systemFont(ofSize: 11, weight: .regular)
+        bufferingNoteLabel.textColor = .tertiaryLabelColor
+        bufferingNoteLabel.maximumNumberOfLines = 0
+
         playbackButton.translatesAutoresizingMaskIntoConstraints = false
         playbackButton.bezelStyle = .rounded
         playbackButton.target = self
         playbackButton.action = #selector(handlePlaybackToggle)
+        playbackButton.isHidden = true  // Hidden by default; shown only for audio-only mode
 
         elapsedTimeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         remainingTimeLabel.font = .monospacedDigitSystemFont(ofSize: 12, weight: .medium)
@@ -425,9 +534,7 @@ final class PreviewContentView: NSView {
         seekSlider.isContinuous = true
         seekSlider.isEnabled = false
         seekSlider.trackingStateDidChange = { [weak self] isTracking in
-            guard let self else {
-                return
-            }
+            guard let self else { return }
 
             if isTracking {
                 let interactionID = PlaybackDiagnostics.makeInteractionID(kind: "seek")
@@ -439,9 +546,7 @@ final class PreviewContentView: NSView {
                 self.seekTrackingHandler?(false, interactionID)
             }
 
-            guard !isTracking else {
-                return
-            }
+            guard !isTracking else { return }
 
             self.seekHandler?(self.seekSlider.floatValue, true, self.currentSeekInteractionID)
             self.currentSeekInteractionID = nil
@@ -455,9 +560,7 @@ final class PreviewContentView: NSView {
         volumeSlider.controlSize = .small
         volumeSlider.isContinuous = true
         volumeSlider.trackingStateDidChange = { [weak self] isTracking in
-            guard let self else {
-                return
-            }
+            guard let self else { return }
 
             if isTracking {
                 let interactionID = PlaybackDiagnostics.makeInteractionID(kind: "volume")
@@ -469,6 +572,14 @@ final class PreviewContentView: NSView {
                 self.volumeHandler?(finalVolume, interactionID)
                 self.currentVolumeInteractionID = nil
             }
+        }
+
+        // Play/pause overlay: transparent click target covering the video frame.
+        // Visible only on hover; faded in/out via mouseEntered/mouseExited.
+        playPauseOverlay.translatesAutoresizingMaskIntoConstraints = false
+        playPauseOverlay.alphaValue = 0
+        playPauseOverlay.clickHandler = { [weak self] in
+            self?.playbackToggleHandler?()
         }
 
         textStack.orientation = .vertical
@@ -500,6 +611,7 @@ final class PreviewContentView: NSView {
         stackView.addArrangedSubview(compactHintLabel)
         stackView.addArrangedSubview(detailsLabel)
         stackView.addArrangedSubview(statusLabel)
+        stackView.addArrangedSubview(bufferingNoteLabel)
         stackView.translatesAutoresizingMaskIntoConstraints = false
         stackView.orientation = .vertical
         stackView.alignment = .leading
@@ -508,6 +620,7 @@ final class PreviewContentView: NSView {
         videoFrameView.addSubview(videoCanvasView)
         videoFrameView.addSubview(placeholderLabel)
         videoFrameView.addSubview(badgeLabel)
+        videoFrameView.addSubview(playPauseOverlay)
         addSubview(stackView)
 
         let stackLeadingConstraint = stackView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 32)
@@ -533,11 +646,15 @@ final class PreviewContentView: NSView {
             placeholderLabel.centerYAnchor.constraint(equalTo: videoFrameView.centerYAnchor),
             badgeLabel.topAnchor.constraint(equalTo: videoFrameView.topAnchor, constant: 12),
             badgeLabel.trailingAnchor.constraint(equalTo: videoFrameView.trailingAnchor, constant: -12),
+            playPauseOverlay.topAnchor.constraint(equalTo: videoFrameView.topAnchor),
+            playPauseOverlay.bottomAnchor.constraint(equalTo: videoFrameView.bottomAnchor),
+            playPauseOverlay.leadingAnchor.constraint(equalTo: videoFrameView.leadingAnchor),
+            playPauseOverlay.trailingAnchor.constraint(equalTo: videoFrameView.trailingAnchor),
             controlsRow.widthAnchor.constraint(equalTo: stackView.widthAnchor),
             iconView.widthAnchor.constraint(equalToConstant: 40),
             iconView.heightAnchor.constraint(equalToConstant: 40),
             seekSlider.widthAnchor.constraint(greaterThanOrEqualToConstant: 260),
-            volumeSlider.widthAnchor.constraint(equalToConstant: 120)
+            volumeSlider.widthAnchor.constraint(equalToConstant: 120),
         ])
 
         badgeLabel.setContentHuggingPriority(.required, for: .horizontal)
@@ -545,7 +662,20 @@ final class PreviewContentView: NSView {
         elapsedTimeLabel.setContentHuggingPriority(.required, for: .horizontal)
         remainingTimeLabel.setContentHuggingPriority(.required, for: .horizontal)
         volumeLabel.setContentHuggingPriority(.required, for: .horizontal)
+
+        // .inVisibleRect keeps the tracking rect in sync with videoFrameView bounds
+        // automatically whenever the view is laid out. Owner = self so mouseEntered/
+        // mouseExited are dispatched to PreviewContentView.
+        let trackingArea = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        videoFrameView.addTrackingArea(trackingArea)
     }
+
+    // MARK: Actions
 
     @objc
     private func handlePlaybackToggle() {
@@ -554,9 +684,7 @@ final class PreviewContentView: NSView {
 
     @objc
     private func handleSeekChanged() {
-        guard !isUpdatingSeekSlider else {
-            return
-        }
+        guard !isUpdatingSeekSlider else { return }
 
         let isFinal = !seekSlider.isTrackingInteraction
         PlaybackDiagnostics.log("[seek] ui-change id=\(currentSeekInteractionID ?? 0) position=\(String(format: "%.4f", seekSlider.floatValue)) final=\(isFinal) t=\(PlaybackDiagnostics.timestampString())")
@@ -571,6 +699,8 @@ final class PreviewContentView: NSView {
         volumeHandler?(targetVolume, interactionID)
     }
 
+    // MARK: Private helpers
+
     private func layoutVideoCanvas() {
         let safeBounds = videoFrameView.bounds.insetBy(dx: 1, dy: 1)
         videoCanvasView.frame = VideoLayout.fittedRect(contentSize: videoPresentationSize, in: safeBounds).integral
@@ -580,9 +710,11 @@ final class PreviewContentView: NSView {
         let isExpanded = compactHintLabel.isHidden
 
         if isExpanded {
-            let shouldHideVideoFrame = mediaKind == .audioOnly
-            videoFrameView.isHidden = shouldHideVideoFrame
-            badgeLabel.isHidden = shouldHideVideoFrame
+            let isAudioOnly = mediaKind == .audioOnly
+            videoFrameView.isHidden = isAudioOnly
+            badgeLabel.isHidden = isAudioOnly
+            // Play button is only useful in audio-only mode; the overlay handles video.
+            playbackButton.isHidden = !isAudioOnly
         }
     }
 

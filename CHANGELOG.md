@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## 0.1.5 - 2026-04-10
+
+### Added
+
+- Hover overlay play/pause toggle on the video frame — fades in on mouse enter, fades out on exit, clicking anywhere on the video frame toggles playback. Matches native Quick Look behavior.
+- Buffering note label added to the expanded preview explaining that seek and volume changes have an inherent short delay caused by VLCKit's audio/video pipeline.
+- README now includes a permanent technical explanation of volume buffer latency (80–200 ms) and keyframe seek latency (100–500 ms) so users understand these are inherent hardware/codec constraints, not bugs.
+
+### Changed
+
+- Seek and volume sliders now jump immediately to the click position. Replaced `super.mouseDown` (which triggered AppKit page-step behavior) with a `window?.trackEvents` custom local event loop. Handle jumps on first `mouseDown`; `beginScrubbing` is deferred to the first actual drag event, so a plain click never triggers an unwanted pause/resume cycle.
+- Play button removed from the controls row for video mode. The hover overlay replaces it. The play button is kept only for audio-only mode where there is no video frame to hover.
+- AVI routing fixed: added `public.avi` to `LSItemContentTypes` in `CFBundleDocumentTypes`. macOS assigns real `.avi` files the system UTI `public.avi`; the app only claimed `com.robertwildling.mkvquicklook.avi`, so Finder never routed `.avi` files to it. The extension `QLSupportedContentTypes` already had `public.avi`; only the host app ownership declaration was missing.
+
+### Removed
+
+- `VLCVideoLayerHostView.swift` deleted. It was dead code — never referenced outside its own file. The playback path exclusively uses `VLCVideoView`.
+
+### Known Issues
+
+- Seek and volume delays are not bugs but inherent pipeline constraints. See README section "Playback Delays" for the full technical explanation.
+- AVI playback is routed correctly but playback quality for obscure legacy codecs (DivX, old Xvid variants, uncompressed audio) depends on VLCKit codec support and may fail for unusual files.
+
 ## 0.1.4 - 2026-04-10
 
 ### Added

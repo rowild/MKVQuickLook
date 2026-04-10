@@ -94,8 +94,10 @@ final class VideoLayoutTests: XCTestCase {
     }
 
     @MainActor
-    func testPlaybackButtonRemainsEnabledWhileOpeningAndBuffering() {
+    func testAudioOnlyExpandedModeShowsPlaybackButton() {
+        // The play button is only shown for audio-only mode; video uses the hover overlay instead.
         let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setMediaKind(.audioOnly)
         previewView.setPresentationMode(.expanded)
 
         previewView.updatePlaybackState(.opening)

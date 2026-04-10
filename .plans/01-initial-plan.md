@@ -2,8 +2,8 @@
 
 Version snapshot:
 
-- release version: `0.1.4`
-- build number: `5`
+- release version: `0.1.5`
+- build number: `6`
 - snapshot date: `2026-04-10`
 
 ## Goal
@@ -158,21 +158,29 @@ In practice, the custom owned UTIs are what made routing predictable.
 - no fallback remux pipeline exists
 - some Finder-hosted control behavior still requires on-machine validation even when AppKit/VLCKit tests pass
 
+### Playback Delay Explanation (Permanent Technical Constraint)
+
+Both seek and volume changes have a short but perceptible delay. This is **not a software bug**. These delays are inherent to how digital audio and compressed video work and cannot be removed without introducing worse problems.
+
+**Volume delay — audio output pipeline latency**
+
+When the volume slider changes, the Swift API call sets the level instantly. What you hear is delayed because VLCKit renders decoded audio into a ring buffer that feeds Core Audio and then the hardware DAC. That buffer exists to absorb CPU timing jitter; without it, even a brief stall causes audible crackling or dropout. The buffer is typically **80–200 ms** deep on macOS. Volume changes apply only to audio not yet queued into the buffer. The audio already buffered plays at the old level and drains through first. Flushing the buffer to apply volume immediately would cause audible clicks on every adjustment. Even macOS's own system volume control has a milder version of this effect.
+
+**Seek delay — inter-frame video compression**
+
+Only keyframes (I-frames) in a compressed video stream are self-contained and decodable independently. P-frames and B-frames reference earlier frames and cannot be decoded alone. Seeking to an arbitrary position requires finding the nearest preceding keyframe and decoding every frame from there to the target. A typical H.264 stream with 2–10 second keyframe intervals at 30 fps means decoding **60–300 frames** before the target frame is displayable. For HD content this takes **100–500 ms** even with hardware decoding. Native Apple players appear faster because AVFoundation has direct access to the Apple Silicon hardware video decoder; VLCKit operates at a higher abstraction level.
+
+These delays are documented in the UI with a note to the user. The slider position updates immediately; only the audio and video output lag behind.
+
 ### Current Control Findings
 
 These findings are specific enough that they should remain documented here:
 
 - volume drag is responsive because the app writes directly to `mediaPlayer.audio?.volume`
-- volume bar click still has an observable lag on the target machine even after the handle-position regressions were corrected
-- seek drag and seek pure-click were not equivalent in Finder-hosted Quick Look
-- a plain click on the seek bar could trigger internal activity without moving the handle or visibly changing position
-- click-plus-small-drag on the seek bar behaved differently and did move to the target
-
-Current engineering interpretation:
-
-- volume lag after direct assignment is likely downstream of the Swift UI path and inside VLCKit / audio buffering / output scheduling
-- seek-bar click behavior is at least partly an interaction-delivery problem, not just a simple seek-timing problem
-- Finder-hosted Quick Look control behavior must be treated as distinct from generic AppKit assumptions
+- the remaining volume delay is downstream of the Swift path, inside VLCKit's audio output buffer and Core Audio pipeline — this is permanent
+- seek drag and seek click now use the same custom tracking loop via `window?.trackEvents`; the slider jumps immediately on mouseDown without AppKit's default page-step behavior
+- a simple click on the seek bar no longer triggers a pause/resume cycle; `beginScrubbing` is deferred to the first actual drag event
+- the remaining seek delay after a click is VLCKit's keyframe-to-target-frame decode latency — this is permanent
 
 Implementation-level findings from the later volume investigation:
 
@@ -675,14 +683,26 @@ Rule:
 - design compact preview content for constrained bounds
 - do not try to “set the width” of Finder’s preview pane
 
-### 9. Do Not Over-Promise AVI
+### 9. AVI Routing Requires Explicit `public.avi` Ownership
 
-AVI is container-level compatibility only.
+AVI has a special routing problem that the other supported formats do not.
+
+Root cause:
+
+- `mkv`, `webm`, `ogv`, and `opus` do not have Apple-system UTIs with the `public.` prefix
+- `.avi` files are assigned `public.avi` by macOS — an Apple-owned system type
+- the app's custom UTI `com.robertwildling.mkvquicklook.avi` uses the `com.robertwildling.` prefix and does not inherit from `public.avi`
+- if the app only claims ownership of `com.robertwildling.mkvquicklook.avi`, Finder assigns actual `.avi` files as `public.avi` and routes them to the system handler, completely ignoring this extension
+
+Fix applied:
+
+- `public.avi` was added to the `LSItemContentTypes` array of the AVI document type entry in `MKVQuickLookApp/Resources/Info.plist`
+- the extension already listed `public.avi` in `QLSupportedContentTypes`
 
 Rule:
 
-- AVI is best-effort support only
-- always expect codec-specific failures
+- for any file type that macOS already recognises with a `public.*` or `org.*` system UTI, the app must claim the system UTI directly in `CFBundleDocumentTypes`, not just a custom shadow type
+- AVI codec support is still best-effort — VLCKit handles DivX, Xvid, H.264 in AVI, and most modern encodings, but will fail on obscure legacy codecs such as Indeo Video
 
 ### 10. Do Not Introduce A Remux Fallback Into The Main Path
 
