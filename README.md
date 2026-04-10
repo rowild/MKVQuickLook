@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.5` (`build 6`)
+Version: `0.1.6` (`build 7`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -34,6 +34,21 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 - renderer, metadata, and UI regressions covered by automated tests
 - hover overlay play/pause on the video frame (like native Quick Look)
 - seek and volume sliders jump immediately to click position
+
+## AVI Quick Look Limitation
+
+MKVQuickLook's Quick Look extension handles `.avi` files only when MKVQuickLook is the **active default opener** for AVI on the system.
+
+macOS routes Quick Look previews to the extension belonging to whichever app is registered as the default opener for the file's UTI (`public.avi`). If that app is VLC, IINA, QuickTime, or any other player, macOS falls back to its built-in `Movie.qlgenerator`, which uses AVFoundation.
+
+For AVI files with common codecs (MPEG-4 Part 2, H.264, MP3 audio), the system generator produces a working preview — so this is usually not a problem.
+
+To route AVI Quick Look previews through MKVQuickLook (e.g. for files with codecs AVFoundation cannot decode), set MKVQuickLook as the default AVI opener:
+
+- In Finder: right-click any `.avi` file → Get Info → Open With → select MKVQuickLook → Change All
+- Or via CLI (requires `duti`): `duti -s com.robertwildling.MKVQuickLookApp public.avi all`
+
+Note: this changes which app launches when you double-click an `.avi` file, not just the Quick Look behavior.
 
 ## Playback Delays
 
@@ -164,8 +179,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.5`.
-5. Set the release title, for example `v0.1.5`.
+4. Create or select a tag such as `v0.1.6`.
+5. Set the release title, for example `v0.1.6`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -174,11 +189,11 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.5
-git push origin v0.1.5
+git tag v0.1.6
+git push origin v0.1.6
 
-gh release create v0.1.5 dist/MKVQuickLook-v0.1.5.dmg \
-  --title "v0.1.5" \
+gh release create v0.1.6 dist/MKVQuickLook-v0.1.6.dmg \
+  --title "v0.1.6" \
   --notes-file CHANGELOG.md
 ```
 
@@ -201,8 +216,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.5
-git push origin v0.1.5
+git tag v0.1.6
+git push origin v0.1.6
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.
@@ -335,4 +350,4 @@ If lag remains after `apply`, the remaining delay is downstream in VLCKit / deco
 
 ## Next Step
 
-Validate current control behavior in Finder on macOS 14 and 15, then tighten unsupported-codec handling and release packaging.
+Validate current control behavior in Finder on macOS 14 and 15. AVI preview now works for common codecs via the system generator; no further AVI work is planned unless exotic-codec support is requested.

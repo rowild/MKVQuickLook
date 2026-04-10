@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.1.6 - 2026-04-10
+
+### Fixed (Documentation)
+
+- Clarified in `.plans/01-initial-plan.md` that the Quick Look extension does not override the system `Movie.qlgenerator` for `public.avi` files unless MKVQuickLook is set as the active default opener for AVI in Launch Services. The `LSHandlerRank = Owner` declaration is a preference, not a guarantee — if another app (e.g. VLC) is already the registered default, the system generator wins. This is a macOS architectural constraint, not a code bug.
+
+### Known Issues
+
+- For AVI files, Quick Look uses the system `Movie.qlgenerator` (AVFoundation) on systems where MKVQuickLook is not the default app for `public.avi`. This produces a working preview for files with common codecs (MPEG-4 Part 2, H.264, MP3). For exotic codecs that AVFoundation cannot decode, the user must set MKVQuickLook as the default AVI opener via Finder → Get Info → Open With → Change All.
+- Seek and volume delays are inherent pipeline constraints, not bugs. See README section "Playback Delays".
+
 ## 0.1.5 - 2026-04-10
 
 ### Added

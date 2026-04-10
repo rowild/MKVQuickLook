@@ -2,8 +2,8 @@
 
 Version snapshot:
 
-- release version: `0.1.5`
-- build number: `6`
+- release version: `0.1.6`
+- build number: `7`
 - snapshot date: `2026-04-10`
 
 ## Goal
@@ -699,10 +699,18 @@ Fix applied:
 - `public.avi` was added to the `LSItemContentTypes` array of the AVI document type entry in `MKVQuickLookApp/Resources/Info.plist`
 - the extension already listed `public.avi` in `QLSupportedContentTypes`
 
+Fix limitation — Quick Look extension still does not override system generator for `public.avi`:
+
+- even with `public.avi` claimed in both `CFBundleDocumentTypes` and `QLSupportedContentTypes`, the system `Movie.qlgenerator` in `/System/Library/QuickLook/` takes over for `public.avi` on any system where MKVQuickLook is not the active default opener for AVI
+- Quick Look routes to the Quick Look extension of whichever app is the registered default opener for the UTI; if that app is VLC (or anything other than MKVQuickLook), the system generator handles the preview instead
+- this is a macOS design constraint, not a bug: the only fix is to set MKVQuickLook as the default app for `.avi` via Finder → Get Info → Open With → Change All, or via `duti -s com.robertwildling.MKVQuickLookApp public.avi all`
+- in practice this is not critical: macOS `Movie.qlgenerator` handles AVI files with common codecs (MPEG-4 Part 2 / DivX, H.264, MP3) correctly via AVFoundation; our extension's irreplaceable value is for MKV, WebM, Ogg, and Opus which the system cannot preview at all
+
 Rule:
 
 - for any file type that macOS already recognises with a `public.*` or `org.*` system UTI, the app must claim the system UTI directly in `CFBundleDocumentTypes`, not just a custom shadow type
 - AVI codec support is still best-effort — VLCKit handles DivX, Xvid, H.264 in AVI, and most modern encodings, but will fail on obscure legacy codecs such as Indeo Video
+- do not treat "Quick Look uses system generator for AVI" as an unresolved bug; document it as a known architectural constraint
 
 ### 10. Do Not Introduce A Remux Fallback Into The Main Path
 
