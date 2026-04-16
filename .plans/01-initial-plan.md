@@ -2,9 +2,9 @@
 
 Version snapshot:
 
-- release version: `0.1.6`
-- build number: `7`
-- snapshot date: `2026-04-10`
+- release version: `0.1.7`
+- build number: `8`
+- snapshot date: `2026-04-16`
 
 ## Goal
 
@@ -13,7 +13,7 @@ Build a macOS app that contains a Quick Look Preview Extension for direct previe
 - `mkv` as the primary target
 - `webm`
 - `ogv` / Ogg video
-- `avi` as best-effort support
+- `opus` (audio-only)
 
 Target runtime:
 
@@ -154,7 +154,7 @@ In practice, the custom owned UTIs are what made routing predictable.
 ### Deliberate Constraints
 
 - compact Finder column preview is not a live player
-- AVI remains best-effort
+- AVI is no longer advertised; the UTI registration and VLCKit path remain in the bundle but the feature is not presented to users (see Pitfall #9)
 - no fallback remux pipeline exists
 - some Finder-hosted control behavior still requires on-machine validation even when AppKit/VLCKit tests pass
 

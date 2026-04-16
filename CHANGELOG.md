@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.1.7 - 2026-04-16
+
+### Changed
+
+- Removed AVI from the advertised list of supported formats. The UTI registration and VLCKit playback path for `.avi` remain in the bundle, but the feature was conditional on MKVQuickLook being the active default opener for `public.avi` — a constraint that makes it unreliable to advertise. The README feature list, AVI Quick Look Limitation section, and all dev/testing AVI references have been removed.
+- Added `.vscode/` to `.gitignore` to prevent editor-local Claude Code workspace settings from being committed to the repository.
+
+### Known Issues
+
+- Seek and volume delays are inherent pipeline constraints, not bugs. See README section "Playback Delays".
+
 ## 0.1.6 - 2026-04-10
 
 ### Fixed (Documentation)

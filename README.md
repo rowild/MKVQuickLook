@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.6` (`build 7`)
+Version: `0.1.7` (`build 8`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -163,8 +163,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.6`.
-5. Set the release title, for example `v0.1.6`.
+4. Create or select a tag such as `v0.1.7`.
+5. Set the release title, for example `v0.1.7`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -173,11 +173,11 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.1.7
+git push origin v0.1.7
 
-gh release create v0.1.6 dist/MKVQuickLook-v0.1.6.dmg \
-  --title "v0.1.6" \
+gh release create v0.1.7 dist/MKVQuickLook-v0.1.7.dmg \
+  --title "v0.1.7" \
   --notes-file CHANGELOG.md
 ```
 
@@ -200,8 +200,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.6
-git push origin v0.1.6
+git tag v0.1.7
+git push origin v0.1.7
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.
