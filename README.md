@@ -8,7 +8,6 @@ macOS host app plus Quick Look Preview Extension scaffold for:
 - `webm`
 - `ogg` / `ogv`
 - `opus` (audio-only)
-- `avi` (best-effort)
 
 `MKVQuickLook` provides a Finder Quick Look preview for these formats on macOS by shipping a small host app with a bundled Quick Look Preview Extension and embedded `VLCKit` playback backend.
 
@@ -34,21 +33,6 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 - renderer, metadata, and UI regressions covered by automated tests
 - hover overlay play/pause on the video frame (like native Quick Look)
 - seek and volume sliders jump immediately to click position
-
-## AVI Quick Look Limitation
-
-MKVQuickLook's Quick Look extension handles `.avi` files only when MKVQuickLook is the **active default opener** for AVI on the system.
-
-macOS routes Quick Look previews to the extension belonging to whichever app is registered as the default opener for the file's UTI (`public.avi`). If that app is VLC, IINA, QuickTime, or any other player, macOS falls back to its built-in `Movie.qlgenerator`, which uses AVFoundation.
-
-For AVI files with common codecs (MPEG-4 Part 2, H.264, MP3 audio), the system generator produces a working preview — so this is usually not a problem.
-
-To route AVI Quick Look previews through MKVQuickLook (e.g. for files with codecs AVFoundation cannot decode), set MKVQuickLook as the default AVI opener:
-
-- In Finder: right-click any `.avi` file → Get Info → Open With → select MKVQuickLook → Change All
-- Or via CLI (requires `duti`): `duti -s com.robertwildling.MKVQuickLookApp public.avi all`
-
-Note: this changes which app launches when you double-click an `.avi` file, not just the Quick Look behavior.
 
 ## Playback Delays
 
@@ -240,7 +224,6 @@ Notes about the current samples:
 
 - `example-videos/*.mkv` resolves to `org.matroska.mkv`
 - `example-videos/*.webm` resolves to `org.webmproject.webm`
-- `example-videos/*.avi` resolves to `public.avi`
 - the current `example-videos/big_buck_bunny_240p.ogg` sample resolves to audio on this system, not Theora video
 
 So if you want to validate the original Ogg/Theora requirement specifically, add a real `.ogv` or Theora-in-Ogg sample.
@@ -257,7 +240,6 @@ Suggested local contents:
 - one `.webm` file
 - one `.opus` audio-only sample
 - one `.ogv` or Theora-in-Ogg sample if Ogg video support is being tested
-- one `.avi` sample if AVI behavior is being checked
 
 Keep those files local only. If reproducible media fixtures are needed for automated tests, prefer tiny purpose-built samples or generated fixtures instead of large real-world files.
 
@@ -350,4 +332,4 @@ If lag remains after `apply`, the remaining delay is downstream in VLCKit / deco
 
 ## Next Step
 
-Validate current control behavior in Finder on macOS 14 and 15. AVI preview now works for common codecs via the system generator; no further AVI work is planned unless exotic-codec support is requested.
+Validate current control behavior in Finder on macOS 14 and 15.

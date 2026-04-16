@@ -1,4 +1,5 @@
 .DS_Store
+.vscode/
 build/
 DerivedData/
 .build/

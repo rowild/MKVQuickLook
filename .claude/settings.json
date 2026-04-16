@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bash scripts/install-local.sh)",
+      "Read(//private/tmp/**)",
+      "Bash(sed -i '' '/VLCVideoLayerHostView\\\\.swift in Sources/d' MKVQuickLook.xcodeproj/project.pbxproj)",
+      "Bash(sed -i '' '/21ACF4081841AC895F797878 \\\\/\\\\* VLCVideoLayerHostView\\\\.swift \\\\*\\\\/ = {isa = PBXFileReference/d' MKVQuickLook.xcodeproj/project.pbxproj)",
+      "Bash(sed -i '' '/21ACF4081841AC895F797878 \\\\/\\\\* VLCVideoLayerHostView\\\\.swift \\\\*\\\\/,/d' MKVQuickLook.xcodeproj/project.pbxproj)",
+      "Skill(finPatch)",
+      "Skill(finPatch:*)",
+      "Bash(mdls \"/Users/robertwildling/Desktop/_WWW/_MKVQuickLook/example-videos/Chaplin, Charlie - 1923 - The Pilgrim.avi\")",
+      "Bash(ffprobe -v quiet -print_format json -show_streams -show_format \"/Users/robertwildling/Desktop/_WWW/_MKVQuickLook/example-videos/Chaplin, Charlie - 1923 - The Pilgrim.avi\")",
+      "Bash(pluginkit -mAvvv -p com.apple.quicklook.preview)",
+      "Read(//System/Library/QuickLook/**)",
+      "Bash(defaults read:*)",
+      "Bash(xcodegen generate:*)",
+      "Bash(xcodebuild -project MKVQuickLook.xcodeproj -scheme MKVQuickLook -configuration Debug -destination platform=macOS -skip-testing:MKVQuickLookTests/RendererSmokeTests CODE_SIGNING_ALLOWED=NO test)",
+      "Bash(git push:*)",
+      "Bash(git tag:*)"
+    ]
+  }
+}
