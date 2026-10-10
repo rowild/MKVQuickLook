@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.8` (`build 9`)
+Version: `0.1.9` (`build 10`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -38,6 +38,8 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 
 - **AVI is not supported.** While another app, such as VLC, is the default app for `.avi`, Quick Look uses Apple's own previewer. On macOS 26 that previewer cannot play AVI files with DivX (MPEG-4 Part 2) video and MP3 audio.
 - **Routing depends on each Mac.** Quick Look picks a previewer by the type identifier macOS resolves for a file. Other installed apps can declare their own identifiers for `.ogg`, `.opus` or `.ogv`. This release covers the identifiers known so far (`org.xiph.ogg-audio`, `org.xiph.ogg-video`, and others). If a supported file still shows Apple's generic preview, please report the output of `mdls -name kMDItemContentType <file>`.
+- **Sound can continue after switching files.** When Finder switches from an MKVQuickLook preview to a file that another previewer shows (`.mp4`, `.mov`, `.avi`), Finder does not tell the extension. In column view, or with the preview pane open, the old preview stops anyway. In Gallery view, and in list or icon view without the preview pane, it keeps playing until Finder closes it.
+- **Rare freeze.** VLCKit can, rarely, deadlock while it shuts a player down. It was seen in stress tests, not yet in normal use. If Quick Look stops showing these files, open Activity Monitor and quit the process `MKVQuickLookPreviewExtension`. macOS starts a new one for the next preview.
 - **App size.** `VLCKit` (about 79 MB) is embedded twice, so the app is about 159 MB.
 - **Not notarized.** See "Gatekeeper" above.
 
@@ -173,8 +175,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.8`.
-5. Set the release title, for example `v0.1.8`.
+4. Create or select a tag such as `v0.1.9`.
+5. Set the release title, for example `v0.1.9`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -183,12 +185,12 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.8
-git push origin v0.1.8
+git tag v0.1.9
+git push origin v0.1.9
 
-gh release create v0.1.8 dist/MKVQuickLook-v0.1.8.dmg \
-  --title "v0.1.8" \
-  --notes-file <(./scripts/changelog-section.sh v0.1.8)
+gh release create v0.1.9 dist/MKVQuickLook-v0.1.9.dmg \
+  --title "v0.1.9" \
+  --notes-file <(./scripts/changelog-section.sh v0.1.9)
 ```
 
 `scripts/changelog-section.sh` prints only the `CHANGELOG.md` section for that version.
@@ -213,8 +215,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.8
-git push origin v0.1.8
+git tag v0.1.9
+git push origin v0.1.9
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.
@@ -259,6 +261,15 @@ The renderer smoke tests (`RendererSmokeTests`, skipped in CI) need these exact 
 - `Reflections-test.mkv` (video)
 - `big_buck_bunny_240p.webm` (video)
 - `sample3.ogg` (audio-only Vorbis)
+- `BeachDrone-AV1.webm` (AV1 video with a silent audio track, so the playback test makes no sound)
+
+Run them with a time limit. If VLCKit produces no video output, stopping the player can block forever:
+
+```sh
+xcodebuild -project MKVQuickLook.xcodeproj -scheme MKVQuickLook -configuration Debug \
+  -destination 'platform=macOS' -test-timeouts-enabled YES -default-test-execution-time-allowance 60 \
+  -only-testing:MKVQuickLookTests/RendererSmokeTests CODE_SIGNING_ALLOWED=NO test
+```
 
 Keep those files local only. If reproducible media fixtures are needed for automated tests, prefer tiny purpose-built samples or generated fixtures instead of large real-world files.
 

@@ -22,6 +22,8 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     // `media` getter returns a different wrapper object. Keep our own reference so the
     // parse delegate callback arrives and can be matched to the current file.
     private var currentMedia: VLCMedia?
+    // Kept after stop() so the play button can reload the file.
+    private(set) var loadedFileURL: URL?
     private var pendingSeekPosition: Float?
     private var pendingSeekWorkItem: DispatchWorkItem?
     private var wasPlayingBeforeScrub = false
@@ -66,6 +68,8 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     }
 
     func loadMedia(from url: URL) {
+        PlaybackDiagnostics.log("[load] player=\(MediaPreviewPlayerSession.diagnosticName(self)) file=\(url.lastPathComponent) t=\(PlaybackDiagnostics.timestampString())")
+        loadedFileURL = url
         let media = VLCMedia(url: url)
         media.delegate = self
         // Parse asynchronously. A synchronous parse blocks the main thread, and with it
@@ -219,11 +223,17 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
             mediaPlayer.position = 0
             play()
         default:
+            // stop() unloads the media (another preview took over, or the host closed
+            // this one). Reload the last file so the play button keeps working.
+            if currentMedia == nil, let loadedFileURL {
+                loadMedia(from: loadedFileURL)
+            }
             play()
         }
     }
 
     func stop() {
+        PlaybackDiagnostics.log("[stop] player=\(MediaPreviewPlayerSession.diagnosticName(self)) t=\(PlaybackDiagnostics.timestampString())")
         pendingSeekWorkItem?.cancel()
         pendingSeekWorkItem = nil
         pendingSeekPosition = nil
@@ -406,7 +416,7 @@ extension VLCKitMediaPreviewPlayer: VLCMediaPlayerDelegate {
         }
 
         publishPlaybackMetrics()
-        PlaybackDiagnostics.log("[state] state=\(mediaPlayer.state.rawValue) mapped=\(String(describing: mappedState)) id=\(activeSeekInteractionID ?? 0) t=\(PlaybackDiagnostics.timestampString())")
+        PlaybackDiagnostics.log("[state] player=\(MediaPreviewPlayerSession.diagnosticName(self)) state=\(mediaPlayer.state.rawValue) mapped=\(String(describing: mappedState)) id=\(activeSeekInteractionID ?? 0) t=\(PlaybackDiagnostics.timestampString())")
         playbackStateDidChange?(mappedState)
     }
 }

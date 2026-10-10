@@ -26,6 +26,8 @@ protocol MediaPreviewPlayer: AnyObject {
     var videoPresentationSizeDidChange: ((CGSize?) -> Void)? { get set }
     var videoOutputVisibilityDidChange: ((Bool) -> Void)? { get set }
     var mediaKindDidChange: ((PreviewMediaKind) -> Void)? { get set }
+    /// The file last passed to `loadMedia(from:)`; kept after `stop()`.
+    var loadedFileURL: URL? { get }
 
     func loadMedia(from url: URL)
     func primeForPausedStart()

@@ -9,8 +9,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
     private let previewContentView = PreviewContentView()
     private var player: MediaPreviewPlayer?
     private var currentFileURL: URL?
-    private var isMediaLoaded = false
-    private var presentationMode: PreviewPresentationMode?
+    private var lifecycle = PreviewPlaybackLifecycle()
 
     override func loadView() {
         view = previewContentView
@@ -26,6 +25,12 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
         )
     }
 
+    override func viewWillAppear() {
+        super.viewWillAppear()
+        logLifecycle("will-appear")
+        lifecycle.willAppear()
+    }
+
     override func viewDidLayout() {
         super.viewDidLayout()
         player?.refreshVideoLayout()
@@ -34,13 +39,14 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
     override func viewDidDisappear() {
         super.viewDidDisappear()
-        player?.stop()
-        MediaPreviewPlayerSession.deactivate(player)
-        isMediaLoaded = false
+        logLifecycle("did-disappear")
+        MediaPreviewPlayerSession.previewDidClose(file: currentFileURL, closingPlayer: player)
+        applyPlaybackAction(lifecycle.didDisappear())
     }
 
     func preparePreviewOfFile(at url: URL) async throws {
         do {
+            logLifecycle("prepare", file: url)
             MediaPreviewPlayerSession.stopActivePreview()
             let metadata = try PreviewMetadata(fileURL: url)
             let player = VLCKitMediaPreviewPlayer()
@@ -53,7 +59,7 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
             previewContentView.attachRenderView(player.renderView)
 
             currentFileURL = url
-            isMediaLoaded = false
+            lifecycle.prepare()
             updatePresentationModeAndPlayback()
         } catch {
             title = url.lastPathComponent
@@ -64,29 +70,32 @@ final class PreviewViewController: NSViewController, QLPreviewingController {
 
     private func updatePresentationModeAndPlayback() {
         let mode = currentPresentationMode()
-        let modeChanged = presentationMode != mode
-        presentationMode = mode
-
         previewContentView.setPresentationMode(mode)
         preferredContentSize = mode == .expanded ? Self.expandedPreferredContentSize : Self.compactPreferredContentSize
+        applyPlaybackAction(lifecycle.layout(mode: mode, hasFile: currentFileURL != nil))
+    }
 
-        switch mode {
-        case .compact:
-            if isMediaLoaded && modeChanged {
-                player?.stop()
-                MediaPreviewPlayerSession.deactivate(player)
-                isMediaLoaded = false
-            }
-        case .expanded:
-            if !isMediaLoaded, let currentFileURL {
-                player?.loadMedia(from: currentFileURL)
-                isMediaLoaded = true
-                if let player {
-                    MediaPreviewPlayerSession.activate(player)
-                    player.play()
-                }
-            }
+    private func applyPlaybackAction(_ action: PreviewPlaybackLifecycle.Action) {
+        switch action {
+        case .none:
+            break
+        case .stop:
+            logLifecycle("stop")
+            player?.stop()
+            MediaPreviewPlayerSession.deactivate(player)
+        case .loadAndPlay:
+            guard let player, let currentFileURL else { return }
+            logLifecycle("autoplay")
+            player.loadMedia(from: currentFileURL)
+            MediaPreviewPlayerSession.activate(player)
+            player.play()
         }
+    }
+
+    private func logLifecycle(_ event: String, file: URL? = nil) {
+        let controller = String(UInt(bitPattern: ObjectIdentifier(self).hashValue), radix: 16)
+        let fileName = (file ?? currentFileURL)?.lastPathComponent ?? "nil"
+        PlaybackDiagnostics.log("[ql] \(event) controller=\(controller) file=\(fileName) size=\(NSStringFromSize(view.bounds.size)) t=\(PlaybackDiagnostics.timestampString())")
     }
 
     private func currentPresentationMode() -> PreviewPresentationMode {

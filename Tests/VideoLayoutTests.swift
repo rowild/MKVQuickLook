@@ -178,6 +178,65 @@ final class VideoLayoutTests: XCTestCase {
         XCTAssertFalse(previewView.isControlsRowHiddenForTesting)
     }
 
+    // Finder lays a preview out again after it has closed it (viewDidDisappear), for
+    // example in Gallery view. That layout pass must not reload and restart the
+    // video out of sight.
+    func testClosedPreviewDoesNotStartAgainOnLaterLayout() {
+        var lifecycle = PreviewPlaybackLifecycle()
+        lifecycle.prepare()
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: true), .loadAndPlay)
+
+        XCTAssertEqual(lifecycle.didDisappear(), .stop)
+
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: true), .none)
+    }
+
+    func testClosedPreviewStartsAgainWhenShownAgain() {
+        var lifecycle = PreviewPlaybackLifecycle()
+        lifecycle.prepare()
+        _ = lifecycle.layout(mode: .expanded, hasFile: true)
+        _ = lifecycle.didDisappear()
+
+        lifecycle.willAppear()
+
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: true), .loadAndPlay)
+    }
+
+    func testClosedPreviewStartsAgainWhenPreparedWithAFile() {
+        var lifecycle = PreviewPlaybackLifecycle()
+        lifecycle.prepare()
+        _ = lifecycle.layout(mode: .expanded, hasFile: true)
+        _ = lifecycle.didDisappear()
+
+        lifecycle.prepare()
+
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: true), .loadAndPlay)
+    }
+
+    func testExpandedPreviewLoadsOnlyOnce() {
+        var lifecycle = PreviewPlaybackLifecycle()
+        lifecycle.prepare()
+
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: true), .loadAndPlay)
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: true), .none)
+    }
+
+    func testExpandedPreviewWithoutFileDoesNothing() {
+        var lifecycle = PreviewPlaybackLifecycle()
+
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: false), .none)
+    }
+
+    func testShrinkingToCompactStopsLoadedMediaOnce() {
+        var lifecycle = PreviewPlaybackLifecycle()
+        lifecycle.prepare()
+        _ = lifecycle.layout(mode: .expanded, hasFile: true)
+
+        XCTAssertEqual(lifecycle.layout(mode: .compact, hasFile: true), .stop)
+        XCTAssertEqual(lifecycle.layout(mode: .compact, hasFile: true), .none)
+        XCTAssertEqual(lifecycle.layout(mode: .expanded, hasFile: true), .loadAndPlay)
+    }
+
     // The compact Finder preview must stay summary-only, even when the player reports
     // the media kind (which re-runs the expanded-mode layout rules).
     @MainActor
@@ -270,6 +329,55 @@ final class VideoLayoutTests: XCTestCase {
         XCTAssertEqual(second.togglePlaybackCount, 1)
     }
 
+    // When Quick Look moves on to a file it shows with another previewer (for example
+    // an AVI), it keeps our hidden preview playing and tells us nothing. Finder does
+    // close its column preview of the same file at that moment; that must stop playback.
+    @MainActor
+    func testClosingAnotherPreviewOfThePlayingFileStopsPlayback() {
+        MediaPreviewPlayerSession.stopActivePreview()
+        let quickLookPlayer = PlayerSpy()
+        quickLookPlayer.loadedFileURL = URL(fileURLWithPath: "/tmp/Pacific-test.mkv")
+        MediaPreviewPlayerSession.activate(quickLookPlayer)
+        let columnPreviewPlayer = PlayerSpy()
+
+        MediaPreviewPlayerSession.previewDidClose(
+            file: URL(fileURLWithPath: "/tmp/Pacific-test.mkv"),
+            closingPlayer: columnPreviewPlayer
+        )
+
+        XCTAssertTrue(quickLookPlayer.stopCalled)
+    }
+
+    @MainActor
+    func testClosingAPreviewOfAnotherFileKeepsPlayback() {
+        MediaPreviewPlayerSession.stopActivePreview()
+        let quickLookPlayer = PlayerSpy()
+        quickLookPlayer.loadedFileURL = URL(fileURLWithPath: "/tmp/Pacific-test.mkv")
+        MediaPreviewPlayerSession.activate(quickLookPlayer)
+
+        MediaPreviewPlayerSession.previewDidClose(
+            file: URL(fileURLWithPath: "/tmp/Reflections-test.mkv"),
+            closingPlayer: PlayerSpy()
+        )
+
+        XCTAssertFalse(quickLookPlayer.stopCalled)
+    }
+
+    @MainActor
+    func testClosingThePlayingPreviewItselfIsLeftToItsController() {
+        MediaPreviewPlayerSession.stopActivePreview()
+        let quickLookPlayer = PlayerSpy()
+        quickLookPlayer.loadedFileURL = URL(fileURLWithPath: "/tmp/Pacific-test.mkv")
+        MediaPreviewPlayerSession.activate(quickLookPlayer)
+
+        MediaPreviewPlayerSession.previewDidClose(
+            file: URL(fileURLWithPath: "/tmp/Pacific-test.mkv"),
+            closingPlayer: quickLookPlayer
+        )
+
+        XCTAssertFalse(quickLookPlayer.stopCalled)
+    }
+
     @MainActor
     func testReplacingPlayerStopsPreviousPlayer() {
         let current = PlayerSpy()
@@ -333,6 +441,7 @@ private final class PlayerSpy: MediaPreviewPlayer {
     var videoPresentationSizeDidChange: ((CGSize?) -> Void)?
     var videoOutputVisibilityDidChange: ((Bool) -> Void)?
     var mediaKindDidChange: ((PreviewMediaKind) -> Void)?
+    var loadedFileURL: URL?
     private(set) var stopCalled = false
     private(set) var togglePlaybackCount = 0
     private(set) var requestedVolumes: [Int] = []
@@ -382,6 +491,39 @@ final class RendererSmokeTests: XCTestCase {
 
         wait(for: [kindReported], timeout: 10)
         XCTAssertEqual(reportedKinds, [.audioOnly])
+    }
+
+    // After a stop (another preview took over, or Finder closed this one) the play
+    // button must still work: the player reloads its last file instead of doing nothing.
+    // A visible video frame is the proof of playback; VLC state names are not (Pitfall #5).
+    func testTogglePlaybackAfterStopReloadsAndPlays() throws {
+        let player = VLCKitMediaPreviewPlayer()
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 360),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = player.renderView
+        window.orderFrontRegardless()
+        defer {
+            player.stop()
+            window.orderOut(nil)
+        }
+
+        // This sample's audio track is digitally silent, so the test makes no sound.
+        player.loadMedia(from: try sampleURL(named: "BeachDrone-AV1.webm"))
+        player.stop()
+
+        player.togglePlayback()
+
+        XCTAssertTrue(
+            waitUntil(timeout: 10) {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                return player.hasVisibleVideoOutput
+            },
+            "The play button did nothing after stop()"
+        )
     }
 
     func testLoadMediaReportsParsedVideoPresentationSize() throws {

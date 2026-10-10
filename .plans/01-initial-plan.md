@@ -2,8 +2,8 @@
 
 Version snapshot:
 
-- release version: `0.1.8`
-- build number: `9`
+- release version: `0.1.9`
+- build number: `10`
 - snapshot date: `2026-10-10`
 
 ## Goal
@@ -241,6 +241,8 @@ The renderer tests:
 
 If these tests fail, do not ship the change.
 
+Run them with a time limit (`-test-timeouts-enabled YES -default-test-execution-time-allowance 60`). When VLCKit produces no video output, stopping the player can block forever, and the run then hangs instead of failing (see Pitfall #20).
+
 Important CI exception:
 
 - these smoke tests are intentionally skipped in the GitHub Release workflow
@@ -258,6 +260,9 @@ The test suite must also keep explicit regression coverage for control-state bug
 - the compact mode must stay summary-only when the player reports the media kind
 - the video play/pause overlay must be an accessible button whose label follows the playback state
 - `loadMedia` must return before VLC parsing finishes, and the parsed media kind / video size must still arrive (smoke tests)
+- a closed preview must not start again on a later layout pass; it may start again only after `prepare` or `viewWillAppear` (`PreviewPlaybackLifecycle` tests)
+- the play button must reload and play after `stop()` (smoke test; proof is a visible video frame, not a VLC state name)
+- a closed preview of the playing file stops the playing preview; a closed preview of another file, or the playing preview closing itself, does not (session tests)
 
 Removed in 0.1.8: the `VolumeFeedbackState` tests. That type only stored the last requested volume, and nothing displayed its value; the slider is never driven by player read-backs (see the metrics test above).
 
@@ -829,6 +834,50 @@ Rule:
 - a missing sample must fail with a message that names the file
 - README section "Developer Test Media" lists the exact sample names the smoke tests need
 
+### 18. A Closed Preview Must Not Start Again
+
+What went wrong:
+
+- `viewDidDisappear` stopped the player and cleared the "media loaded" flag
+- Finder then laid the closed preview out once more (seen in Gallery view and in the Quick Look panel), and the layout code saw "expanded, nothing loaded" and reloaded and started the video out of sight, with sound
+- the restarted hidden preview also stopped the preview the user was actually looking at
+
+Rule:
+
+- the load/start/stop decision lives in `PreviewPlaybackLifecycle`; a closed preview starts again only after `prepare` or `viewWillAppear`
+- measured lifecycle (macOS 26.6): `prepare` and the first layout come before `viewWillAppear`/`viewDidAppear`; `viewDidDisappear` can arrive seconds late, and a layout pass can follow it
+
+### 19. Quick Look And Finder Do Not Report A Switch To Another Previewer
+
+What went wrong:
+
+- when Gallery view or the Quick Look panel moves from an MKVQuickLook preview to a file that another previewer shows (`.mp4`, `.mov`, `.avi`), the extension gets no lifecycle call at all; the hidden preview keeps playing
+- the extension's window looked the same in every host (`NSServiceViewControllerWindow`, `isVisible == false`); occlusion notifications gave no usable signal
+
+Rule / current workaround:
+
+- Finder closes its column preview of the previous file at that moment; `MediaPreviewPlayerSession.previewDidClose` stops a playing preview of the same file
+- this needs a visible column preview or preview pane; Gallery view and list/icon view without the preview pane remain affected (documented limitation)
+
+### 20. VLCKit Can Deadlock While A Player Is Destroyed
+
+What happened:
+
+- in a load/stop stress program, and twice in the renderer smoke tests, the process froze: one VLCKit release queue destroyed a `VLCMediaPlayer` and waited to write VLC's configuration lock (`config_PutPsz`), another release queue sat in `config_SaveConfigFile` waiting to read it again, and the main thread's next `VLCMediaPlayer.init` waited too; parsing (which also reads the configuration) never finished
+- the final release of VLCKit objects can run on VLCKit's background release queues when the app drops its last reference while an event is still in flight (`VLCEventsHandler`)
+- reproduced 3 times, then 0 times in 10 alternating runs of the 0.1.7 and 0.1.8 player code; the trigger is not known, and it is not known whether the asynchronous parsing of 0.1.8 made it more likely
+
+Rule:
+
+- the stress program is not part of the repository; its shape: create a player, `loadMedia`, wait for the parse result, `stop`, release; 40 times in a row, with a hard time limit, and `sample <pid>` on a hang
+- run smoke tests with test time limits
+- treat any change to player creation, teardown or VLC object lifetime as integration-sensitive; repeat the stress run before and after
+
+### 21. Mistakes During The 0.1.9 Work
+
+- a new smoke test waited for the VLC state `.playing`; for VP8 and AV1 files VLCKit keeps reporting `buffering` while video plays, so the test failed although playback worked. This repeated Pitfall #5. The test now waits for a visible video frame.
+- a stress-test command created a symbolic link through another symbolic link and so placed a stray `VLCKit.framework` link inside `Vendor/VLCKit.xcframework/.../VLCKit.framework`; `codesign` then rejected the embedded framework ("unsealed contents present in the root directory"). Rule: never create links or files inside `Vendor/`; link to the framework from a separate folder, and run `codesign --verify --strict` on the vendored framework when a build starts failing to sign.
+
 ## Recommended Debug Workflow For Future Changes
 
 When something breaks, use this order:
@@ -858,6 +907,8 @@ Core implementation:
 - `Shared/Sources/VideoLayout.swift`
 - `MKVQuickLookPreviewExtension/Sources/PreviewViewController.swift`
 - `Shared/Sources/Player/PreviewPlayerBinding.swift`
+- `Shared/Sources/Player/PreviewPlaybackLifecycle.swift`
+- `Shared/Sources/Player/MediaPreviewPlayerSession.swift`
 
 Installation and registration:
 
@@ -896,6 +947,11 @@ Known unresolved limitations (0.1.8):
 - VLCKit (~79 MB) is embedded twice (app and extension); the app is ~159 MB
 - not verified: a Finder preview pane larger than 720 × 440 pt counts as the expanded player and may autoplay with sound
 - the release workflow pins Xcode 16.2 (Swift 6.0); local development used Xcode 27 (Swift 6.4), so Swift 6.0 compatibility is only proven by the CI run
+
+Added in 0.1.9:
+
+- Gallery view, and list/icon view without the preview pane: switching to a file shown by another previewer leaves the previous preview playing until Finder closes it (Pitfall #19)
+- rare VLCKit teardown deadlock, trigger unknown (Pitfall #20)
 
 ## Next Safe Improvements
 

@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 0.1.9 - 2026-10-10
+
+### Fixed
+
+- A preview that Finder had already closed no longer starts again, out of sight and with sound. Finder lays a closed preview out once more (for example in Gallery view), and that layout pass reloaded and restarted the video. The load/start/stop decision now lives in `PreviewPlaybackLifecycle`: a closed preview stays stopped until it is prepared or shown again.
+- The play button works again after "Playback stopped". `stop()` unloads the media; pressing play now reloads the last file instead of doing nothing.
+- In the Space window, moving to a file that Quick Look shows with another previewer (for example an AVI) no longer leaves the previous video playing in the background. Quick Look does not tell the extension; Finder does close its column preview of the previous file at that moment, and a closed preview of the playing file now stops it. This works in column view and whenever the Finder preview pane is open.
+
+### Changed
+
+- Lifecycle diagnostics in the unified log: `[ql] prepare / autoplay / will-appear / did-disappear / stop`, `[session] …` and `[load]` / `[stop]` per player.
+- `MediaPreviewPlayer.loadedFileURL` exposes the file last passed to `loadMedia(from:)`.
+
+### Known Issues
+
+- Gallery view, and list or icon view without the preview pane: when Finder switches to a file shown by another previewer (`.mp4`, `.mov`, `.avi`), the previous MKVQuickLook preview keeps playing until Finder closes it. Finder sends the extension no signal in these cases.
+- Rare, intermittent freeze inside VLCKit while a player is destroyed: two VLCKit cleanup threads deadlock on VLC's configuration lock. Reproduced 3 times in a load/stop stress program and in 2 renderer smoke-test runs, then 0 times in 10 alternating runs of the 0.1.7 and 0.1.8 player code. The trigger is not known, and it is not known whether 0.1.8 made it more likely.
+- Renderer smoke tests can hang when VLCKit produces no video output, because stopping the player then blocks. Run them with `-test-timeouts-enabled YES -default-test-execution-time-allowance 60`.
+- All Known Issues of 0.1.8 remain.
+
 ## 0.1.8 - 2026-10-10
 
 ### Fixed
