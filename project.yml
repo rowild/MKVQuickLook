@@ -9,8 +9,8 @@ settings:
   base:
     SWIFT_VERSION: 6.0
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    CURRENT_PROJECT_VERSION: 10
-    MARKETING_VERSION: 0.1.9
+    CURRENT_PROJECT_VERSION: 11
+    MARKETING_VERSION: 0.1.10
 targets:
   MKVQuickLookApp:
     type: application
@@ -53,6 +53,8 @@ targets:
         GENERATE_INFOPLIST_FILE: NO
         INFOPLIST_FILE: MKVQuickLookPreviewExtension/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: MKVQuickLookPreviewExtension/MKVQuickLookPreviewExtension.entitlements
+        # The build step below rewrites the linked binary in place.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
@@ -60,8 +62,10 @@ targets:
           - "@loader_path/../Frameworks"
           - "@loader_path/../../Frameworks"
     dependencies:
+      # Linked, not embedded: the app embeds VLCKit once, and the build step below
+      # points the extension at the app's copy.
       - framework: Vendor/VLCKit.xcframework
-        embed: true
+        embed: false
       - sdk: Quartz.framework
       - sdk: AudioToolbox.framework
       - sdk: AVFoundation.framework
@@ -77,6 +81,11 @@ targets:
       - sdk: libc++.tbd
       - sdk: libiconv.tbd
       - sdk: libxml2.tbd
+    postBuildScripts:
+      - name: Load VLCKit from the app bundle
+        script: "\"$SRCROOT/scripts/link-extension-to-app-vlckit.sh\""
+        basedOnDependencyAnalysis: false
+
   MKVQuickLookTests:
     type: bundle.unit-test
     platform: macOS

@@ -72,6 +72,104 @@ final class BundleMetadataTests: XCTestCase {
         XCTAssertTrue(licenseText.contains("GNU LESSER GENERAL PUBLIC LICENSE"))
     }
 
+    // VLCKit is about 79 MB. The app embeds it once; the extension's reference is
+    // rewritten after linking to load the app's copy (see project.yml). Together with
+    // the load-path test below this pins down "one copy, and everything can load it".
+    func testBuiltAppEmbedsVLCKitOnce() throws {
+        let appURL = try builtAppURL()
+        let enumerator = try XCTUnwrap(FileManager.default.enumerator(at: appURL, includingPropertiesForKeys: nil))
+        let copies = enumerator
+            .compactMap { $0 as? URL }
+            .filter { $0.lastPathComponent == "VLCKit.framework" }
+            .map { $0.path.replacingOccurrences(of: appURL.path + "/", with: "") }
+
+        XCTAssertEqual(copies, ["Contents/Frameworks/VLCKit.framework"])
+    }
+
+    // Resolves every recorded VLCKit load path of the app and of the extension the way
+    // dyld does (@loader_path, @executable_path, @rpath + LC_RPATH). VLCKit's install
+    // name is @loader_path/../Frameworks/..., so each binary needs VLCKit in the
+    // Frameworks folder next to it; a wrong bundle layout crashes the extension at
+    // launch ("Library not loaded") long before any test or log line could notice.
+    func testEveryBinaryCanResolveItsVLCKitLoadPath() throws {
+        let appURL = try builtAppURL()
+        let binaryDirectories = [
+            appURL.appendingPathComponent("Contents/MacOS"),
+            appURL.appendingPathComponent("Contents/PlugIns/MKVQuickLookPreviewExtension.appex/Contents/MacOS"),
+        ]
+
+        for directory in binaryDirectories {
+            let images = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+                .filter { !$0.hasPrefix("__") }
+                .map { directory.appendingPathComponent($0) }
+            let runpaths = try images.flatMap { try loadCommandValues(of: $0, command: "LC_RPATH", key: "path") }
+                .map { $0.replacingOccurrences(of: "@executable_path", with: directory.path)
+                    .replacingOccurrences(of: "@loader_path", with: directory.path) }
+            var checkedReferences = 0
+
+            for image in images {
+                for reference in try loadCommandValues(of: image, command: "LC_LOAD_DYLIB", key: "name") where reference.contains("VLCKit") {
+                    checkedReferences += 1
+                    let candidates: [String]
+                    if reference.hasPrefix("@rpath/") {
+                        let suffix = reference.dropFirst("@rpath/".count)
+                        candidates = runpaths.map { "\($0)/\(suffix)" }
+                    } else {
+                        candidates = [reference
+                            .replacingOccurrences(of: "@loader_path", with: directory.path)
+                            .replacingOccurrences(of: "@executable_path", with: directory.path)]
+                    }
+                    XCTAssertTrue(
+                        candidates.contains { FileManager.default.fileExists(atPath: $0) },
+                        "\(image.lastPathComponent) cannot load \(reference); tried \(candidates)"
+                    )
+                }
+            }
+            XCTAssertGreaterThan(checkedReferences, 0, "No VLCKit reference found in \(directory.path)")
+        }
+    }
+
+    private func builtAppURL() throws -> URL {
+        let appURL = Bundle(for: Self.self).bundleURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("MKVQuickLook.app")
+        guard FileManager.default.fileExists(atPath: appURL.path) else {
+            struct MissingBuiltApp: LocalizedError {
+                var errorDescription: String? {
+                    "Expected the built app next to the test bundle. Build and test with the MKVQuickLook scheme."
+                }
+            }
+            throw MissingBuiltApp()
+        }
+        return appURL
+    }
+
+    // Reads the `key` value (for example `path` or `name`) of one Mach-O load command
+    // type with otool.
+    private func loadCommandValues(of binary: URL, command: String, key: String) throws -> [String] {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/otool")
+        process.arguments = ["-l", binary.path]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try process.run()
+        let output = String(decoding: pipe.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        process.waitUntilExit()
+
+        var paths: [String] = []
+        var inCommand = false
+        for line in output.split(separator: "\n").map({ $0.trimmingCharacters(in: .whitespaces) }) {
+            if line.hasPrefix("cmd ") {
+                inCommand = line == "cmd \(command)"
+            } else if inCommand, line.hasPrefix("\(key) ") {
+                // "path @executable_path/../Frameworks (offset 12)"
+                let value = line.dropFirst(key.count + 1)
+                paths.append(String(value.split(separator: " (offset").first ?? value[...]))
+            }
+        }
+        return paths
+    }
+
     private func extensionSupportedContentTypes() throws -> [String] {
         let info = try extensionInfoDictionary()
         let extensionDictionary = try XCTUnwrap(info["NSExtension"] as? [String: Any])

@@ -10,6 +10,7 @@
 		04AD3364848C6C9F1181F5D9 /* MediaPreviewPlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */; };
 		05ED2B3AB06CF53FBE41C024 /* VLCKitMediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */; };
 		09D842054D1327F0CDE6FC1D /* VLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 26CCAD556DF88A26642D0486 /* VLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		0C92E2FA6FBA3E045181B969 /* RendererSmokeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B14E5B3FB694F4D0675240E6 /* RendererSmokeTests.swift */; };
 		1217711BB06DBC176F83B23A /* PreviewPlayerBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */; };
 		1F289B33F3D8F5093D940555 /* MKVQuickLookApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1E78C95438488FF8658FB9C /* MKVQuickLookApp.swift */; };
 		226A44DD09A86E23A77A784E /* VLCKitMediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */; };
@@ -18,7 +19,7 @@
 		2DBB19BC07A0749A1826A96C /* VLCKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26CCAD556DF88A26642D0486 /* VLCKit.xcframework */; };
 		2E90D1CC045B923E1911504B /* PlaybackLabViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2F35CE5184F659D5E453EBED /* PlaybackLabViewController.swift */; };
 		379619FCA3B15E2199DCED3E /* CoreText.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E6CA2A5D9AD0253606ED5B8 /* CoreText.framework */; };
-		37A9A7D30D1471440368C4BA /* VLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 26CCAD556DF88A26642D0486 /* VLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		38E54F218D346084036D4D9F /* PreviewPlaybackLifecycleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B3EEB972EDE3E593F211E4A /* PreviewPlaybackLifecycleTests.swift */; };
 		3A5AC45C4441D15E3D0021C5 /* PreviewViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9165C63B0A4167A6AFEAA0 /* PreviewViewController.swift */; };
 		3C2B58691ED0D8F1CEFD730F /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E1EE6E8B183958E809ED768 /* VideoToolbox.framework */; };
 		3DA12CC066C56B61251996AB /* VideoLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82538038139633F4454BF3B8 /* VideoLayout.swift */; };
@@ -30,6 +31,7 @@
 		538D571285AA34D197E7B3FD /* VLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 26CCAD556DF88A26642D0486 /* VLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		578CD529E1ABB780CD20B7BF /* PlaybackLabWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A03C343D6D22D25C86E719E6 /* PlaybackLabWindowView.swift */; };
 		6450D4447C4CFF72219E9E61 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23AFE1F7AAE3D67F7A785BE9 /* CoreMedia.framework */; };
+		66067441F662E5EFEC20732D /* PreviewContentViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B71CBFD1CF0D8D544878F7E3 /* PreviewContentViewTests.swift */; };
 		698D780C180587F3778C0CCE /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1884C5B428369DD10604A5FC /* QuartzCore.framework */; };
 		6B1B532FBC53989612DEB6CA /* PreviewPlaybackLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DDAFF34D7EFA585F7C3E7F /* PreviewPlaybackLifecycle.swift */; };
 		6D165547EEAFA91EFA14384C /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2C626BD2FE4D67060500BD09 /* AudioToolbox.framework */; };
@@ -50,6 +52,7 @@
 		ABB8B5E272A6FB0104FDFB8E /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D74DAEB38D6766046DE5347E /* libbz2.tbd */; };
 		B6C83FC0590ECB354C1B83C1 /* libc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 53262920855AB9A50B5556EB /* libc++.tbd */; };
 		B78A89B296FFC478525594C2 /* PreviewContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC92F78C77BBE4FDAFCE5507 /* PreviewContentView.swift */; };
+		B7A75E6F15FF344255F30BB4 /* TestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85757FF27B245DFFF6161302 /* TestSupport.swift */; };
 		BAADC961E4F81C15B4A524D5 /* PreviewPlayerBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */; };
 		BE5C8DF61FA046A55278720C /* VLCKit-COPYING.txt in Resources */ = {isa = PBXBuildFile; fileRef = 552D8A08FF68DAAA9471E2A7 /* VLCKit-COPYING.txt */; };
 		BEFDB9743D8F2801EE86892C /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 302F0A0259C5144EFA8FEDAA /* CFNetwork.framework */; };
@@ -62,12 +65,15 @@
 		D483E2EB8422615968CDFAAA /* MediaPreviewPlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */; };
 		E020F82932673E6AAAEF9802 /* VideoLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82538038139633F4454BF3B8 /* VideoLayout.swift */; };
 		E41C8BF1F4FACA82DDD6B11D /* PreviewMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBFF00EB96786F2F91B23B6 /* PreviewMetadata.swift */; };
+		E9A2F114D51285C6A8832D6D /* MediaKindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA10B69BFE40DF57DA1582FB /* MediaKindTests.swift */; };
 		EBDBACD66302E999D1234CA4 /* BundleMetadataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A57BCE90698050905AB447DF /* BundleMetadataTests.swift */; };
 		EC0DB67FA2FA5419279BD272 /* PreviewContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC92F78C77BBE4FDAFCE5507 /* PreviewContentView.swift */; };
 		EC8AC82706C2EA2AB3F398B1 /* VLCKitMediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */; };
 		EF7ADB30C280537CC95076AB /* PreviewMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBFF00EB96786F2F91B23B6 /* PreviewMetadata.swift */; };
 		F0406FE4CA6E21CDCB54FD7A /* VideoLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E12867DF08DF85B99D73F62 /* VideoLayoutTests.swift */; };
+		F2D61CB20B9932EC13E7ECCD /* MediaPreviewPlayerSessionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48A02425AF63A692B683A28A /* MediaPreviewPlayerSessionTests.swift */; };
 		FC72E80FEA99A074D9672BBC /* PreviewPlaybackLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DDAFF34D7EFA585F7C3E7F /* PreviewPlaybackLifecycle.swift */; };
+		FCA225316F03F0580AE8D37B /* PreviewPlayerBindingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5DEA61805757575A84F647D /* PreviewPlayerBindingTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,17 +87,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		0E06A20B4F1554B474037DE0 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				37A9A7D30D1471440368C4BA /* VLCKit.xcframework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		3D334072E7CC69D1F470F37A /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -130,6 +125,7 @@
 /* Begin PBXFileReference section */
 		0E12867DF08DF85B99D73F62 /* VideoLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLayoutTests.swift; sourceTree = "<group>"; };
 		1884C5B428369DD10604A5FC /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		1B3EEB972EDE3E593F211E4A /* PreviewPlaybackLifecycleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPlaybackLifecycleTests.swift; sourceTree = "<group>"; };
 		23AFE1F7AAE3D67F7A785BE9 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
 		26CCAD556DF88A26642D0486 /* VLCKit.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = VLCKit.xcframework; path = Vendor/VLCKit.xcframework; sourceTree = "<group>"; };
 		2C626BD2FE4D67060500BD09 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
@@ -138,11 +134,13 @@
 		343ADEF5139BDB0C75BC64E5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		3F02863FF64BFC509D849AB5 /* MKVQuickLookApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MKVQuickLookApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		40C73021684F36F46E4F3AE6 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
+		48A02425AF63A692B683A28A /* MediaPreviewPlayerSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewPlayerSessionTests.swift; sourceTree = "<group>"; };
 		53262920855AB9A50B5556EB /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
 		552D8A08FF68DAAA9471E2A7 /* VLCKit-COPYING.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "VLCKit-COPYING.txt"; sourceTree = "<group>"; };
 		5C6820EDD7105300E0B3C6FE /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
 		71B770A4F3058220E670AE4D /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		82538038139633F4454BF3B8 /* VideoLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLayout.swift; sourceTree = "<group>"; };
+		85757FF27B245DFFF6161302 /* TestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestSupport.swift; sourceTree = "<group>"; };
 		8813309CDD4827F5A7436239 /* MKVQuickLookTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MKVQuickLookTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8E1EE6E8B183958E809ED768 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		8EBFF00EB96786F2F91B23B6 /* PreviewMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewMetadata.swift; sourceTree = "<group>"; };
@@ -154,10 +152,12 @@
 		A57BCE90698050905AB447DF /* BundleMetadataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundleMetadataTests.swift; sourceTree = "<group>"; };
 		A8DDAFF34D7EFA585F7C3E7F /* PreviewPlaybackLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPlaybackLifecycle.swift; sourceTree = "<group>"; };
 		AC050C47B54C7D4B3C76A408 /* libiconv.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libiconv.tbd; path = usr/lib/libiconv.tbd; sourceTree = SDKROOT; };
+		B14E5B3FB694F4D0675240E6 /* RendererSmokeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RendererSmokeTests.swift; sourceTree = "<group>"; };
 		B19D587EF5533CB9FA05EBFD /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		B1E78C95438488FF8658FB9C /* MKVQuickLookApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MKVQuickLookApp.swift; sourceTree = "<group>"; };
 		B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLCKitMediaPreviewPlayer.swift; sourceTree = "<group>"; };
 		B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPlayerBinding.swift; sourceTree = "<group>"; };
+		B71CBFD1CF0D8D544878F7E3 /* PreviewContentViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContentViewTests.swift; sourceTree = "<group>"; };
 		BA9165C63B0A4167A6AFEAA0 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
 		CC92F78C77BBE4FDAFCE5507 /* PreviewContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContentView.swift; sourceTree = "<group>"; };
 		CED5357DF3752411CC0A8B1E /* PlaybackDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackDiagnostics.swift; sourceTree = "<group>"; };
@@ -165,6 +165,8 @@
 		E3D0BF10236F4D4666B61CC1 /* MKVQuickLookPreviewExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MKVQuickLookPreviewExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewPlayerSession.swift; sourceTree = "<group>"; };
 		E78A20ACD8AECE98CB1DFA53 /* AppStatusViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStatusViewModel.swift; sourceTree = "<group>"; };
+		EA10B69BFE40DF57DA1582FB /* MediaKindTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaKindTests.swift; sourceTree = "<group>"; };
+		F5DEA61805757575A84F647D /* PreviewPlayerBindingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPlayerBindingTests.swift; sourceTree = "<group>"; };
 		F9D991977061BA25D21BFB70 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -237,6 +239,13 @@
 			isa = PBXGroup;
 			children = (
 				A57BCE90698050905AB447DF /* BundleMetadataTests.swift */,
+				EA10B69BFE40DF57DA1582FB /* MediaKindTests.swift */,
+				48A02425AF63A692B683A28A /* MediaPreviewPlayerSessionTests.swift */,
+				B71CBFD1CF0D8D544878F7E3 /* PreviewContentViewTests.swift */,
+				1B3EEB972EDE3E593F211E4A /* PreviewPlaybackLifecycleTests.swift */,
+				F5DEA61805757575A84F647D /* PreviewPlayerBindingTests.swift */,
+				B14E5B3FB694F4D0675240E6 /* RendererSmokeTests.swift */,
+				85757FF27B245DFFF6161302 /* TestSupport.swift */,
 				0E12867DF08DF85B99D73F62 /* VideoLayoutTests.swift */,
 			);
 			path = Tests;
@@ -395,7 +404,7 @@
 			buildPhases = (
 				5D14BBB52FEDEBA33D9A96A1 /* Sources */,
 				6F22E36EABA340EABEF2A0F4 /* Frameworks */,
-				0E06A20B4F1554B474037DE0 /* Embed Frameworks */,
+				D5DEEEBA167D988A559A61E3 /* Load VLCKit from the app bundle */,
 			);
 			buildRules = (
 			);
@@ -451,6 +460,28 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		D5DEEEBA167D988A559A61E3 /* Load VLCKit from the app bundle */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Load VLCKit from the app bundle";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/scripts/link-extension-to-app-vlckit.sh\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5D14BBB52FEDEBA33D9A96A1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -474,13 +505,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				EBDBACD66302E999D1234CA4 /* BundleMetadataTests.swift in Sources */,
+				E9A2F114D51285C6A8832D6D /* MediaKindTests.swift in Sources */,
 				904DAA5E391982B8C176884E /* MediaPreviewPlayer.swift in Sources */,
 				04AD3364848C6C9F1181F5D9 /* MediaPreviewPlayerSession.swift in Sources */,
+				F2D61CB20B9932EC13E7ECCD /* MediaPreviewPlayerSessionTests.swift in Sources */,
 				CB5E07E8C6A42B9D1D2956A5 /* PlaybackDiagnostics.swift in Sources */,
 				2B88CFF90BCF0FB3170CED64 /* PreviewContentView.swift in Sources */,
+				66067441F662E5EFEC20732D /* PreviewContentViewTests.swift in Sources */,
 				EF7ADB30C280537CC95076AB /* PreviewMetadata.swift in Sources */,
 				6B1B532FBC53989612DEB6CA /* PreviewPlaybackLifecycle.swift in Sources */,
+				38E54F218D346084036D4D9F /* PreviewPlaybackLifecycleTests.swift in Sources */,
 				BAADC961E4F81C15B4A524D5 /* PreviewPlayerBinding.swift in Sources */,
+				FCA225316F03F0580AE8D37B /* PreviewPlayerBindingTests.swift in Sources */,
+				0C92E2FA6FBA3E045181B969 /* RendererSmokeTests.swift in Sources */,
+				B7A75E6F15FF344255F30BB4 /* TestSupport.swift in Sources */,
 				226A44DD09A86E23A77A784E /* VLCKitMediaPreviewPlayer.swift in Sources */,
 				A63F735E32903D86FBE2AB98 /* VideoLayout.swift in Sources */,
 				F0406FE4CA6E21CDCB54FD7A /* VideoLayoutTests.swift in Sources */,
@@ -525,6 +563,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MKVQuickLookPreviewExtension/MKVQuickLookPreviewExtension.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"Vendor\"",
@@ -579,7 +618,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -592,7 +631,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.9;
+				MARKETING_VERSION = 0.1.10;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -674,6 +713,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = MKVQuickLookPreviewExtension/MKVQuickLookPreviewExtension.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"Vendor\"",
@@ -752,7 +792,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -771,7 +811,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.9;
+				MARKETING_VERSION = 0.1.10;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

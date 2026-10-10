@@ -2,8 +2,8 @@
 
 Version snapshot:
 
-- release version: `0.1.9`
-- build number: `10`
+- release version: `0.1.10`
+- build number: `11`
 - snapshot date: `2026-10-10`
 
 ## Goal
@@ -878,6 +878,21 @@ Rule:
 - a new smoke test waited for the VLC state `.playing`; for VP8 and AV1 files VLCKit keeps reporting `buffering` while video plays, so the test failed although playback worked. This repeated Pitfall #5. The test now waits for a visible video frame.
 - a stress-test command created a symbolic link through another symbolic link and so placed a stray `VLCKit.framework` link inside `Vendor/VLCKit.xcframework/.../VLCKit.framework`; `codesign` then rejected the embedded framework ("unsealed contents present in the root directory"). Rule: never create links or files inside `Vendor/`; link to the framework from a separate folder, and run `codesign --verify --strict` on the vendored framework when a build starts failing to sign.
 
+### 22. VLCKit Loads From `@loader_path/../Frameworks`, Not From `@rpath`
+
+What went wrong:
+
+- to embed VLCKit only once, the first attempt followed Apple's documented pattern for frameworks shared by an app and its extensions: embed in the app, link only in the extension, and add `@executable_path/../../../../Frameworks` to the extension's runpaths
+- VLCKit's install name is `@loader_path/../Frameworks/VLCKit.framework/Versions/A/VLCKit`, not `@rpath/...`, so runpaths are never consulted; the installed extension crashed at launch (dyld "Library not loaded", a crash report under `~/Library/Logs/DiagnosticReports`)
+- the new test checked only the runpaths and passed; only the runtime check (`qlmanage -p` on a silent sample plus `log stream`) found the crash; the change was reverted at once and reinstalled
+
+Rule:
+
+- check a dependency's install name (`otool -D`) before changing how it is embedded
+- `testEveryBinaryCanResolveItsVLCKitLoadPath` resolves the real `LC_LOAD_DYLIB` entries of the app and the extension; it fails on the broken layout (verified)
+- the extension's reference is rewritten by `scripts/link-extension-to-app-vlckit.sh` (build step, fails the build on an unexpected reference); `scripts/verify-vlckit-load-paths.sh` gates install and release
+- after any bundle-layout change, run the runtime check: `qlmanage -p example-videos/BeachDrone-AV1.webm` with `log stream` on the extension's subsystem, and look for new `MKVQuickLookPreviewExtension*.ips` crash reports
+
 ## Recommended Debug Workflow For Future Changes
 
 When something breaks, use this order:
@@ -918,11 +933,19 @@ Installation and registration:
 Release:
 
 - `scripts/changelog-section.sh` (release notes for one version; used by the release workflow)
+- `scripts/link-extension-to-app-vlckit.sh` (extension build step: load VLCKit from the app bundle)
+- `scripts/verify-vlckit-load-paths.sh` (bundle layout gate used by install and release)
 
-Tests that must not be removed:
+Tests that must not be removed (one file per topic; shared spies and helpers live in `Tests/TestSupport.swift`):
 
-- `Tests/VideoLayoutTests.swift`
-- `Tests/BundleMetadataTests.swift`
+- `Tests/BundleMetadataTests.swift` (plist routing, resolved type identifiers, shipped license, bundle layout)
+- `Tests/VideoLayoutTests.swift` (fit-box layout math)
+- `Tests/MediaKindTests.swift` (audio-only vs. video from extension and from VLC tracks)
+- `Tests/PreviewContentViewTests.swift` (placeholder, audio layout, accessibility, compact mode, volume slider)
+- `Tests/PreviewPlaybackLifecycleTests.swift` (when a preview loads, starts and stops)
+- `Tests/PreviewPlayerBindingTests.swift` (player/view wiring shared by the extension and the Renderer Lab)
+- `Tests/MediaPreviewPlayerSessionTests.swift` (only one preview plays)
+- `Tests/RendererSmokeTests.swift` (real VLCKit playback; local samples; skipped in CI)
 
 ## Current Status
 
@@ -944,7 +967,7 @@ Known unresolved limitations (0.1.8):
 
 - routing depends on the type identifiers each Mac resolves; only the identifiers seen so far are covered
 - AVI with codecs AVFoundation cannot decode (DivX/MP3) gets no working preview while another app is the default `.avi` app; the host app cannot open files, so making it the default AVI app is not practical
-- VLCKit (~79 MB) is embedded twice (app and extension); the app is ~159 MB
+- (resolved in 0.1.10) VLCKit was embedded twice; it is now embedded once and the app is ~80 MB
 - not verified: a Finder preview pane larger than 720 × 440 pt counts as the expanded player and may autoplay with sound
 - the release workflow pins Xcode 16.2 (Swift 6.0); local development used Xcode 27 (Swift 6.4), so Swift 6.0 compatibility is only proven by the CI run
 
@@ -961,9 +984,7 @@ These are reasonable future changes:
 - improve playback controls polish
 - strengthen logging around extension lifecycle and file type routing
 - document release packaging and distribution more cleanly
-- embed VLCKit once and load it from the host app from the extension (needs sandbox and code-signing verification)
 - let the host app open media files (for example in the Renderer Lab), so being the default app for a type is usable
-- split `Tests/VideoLayoutTests.swift` by topic (needs `xcodegen generate` for new files)
 
 These are risky and should be approached carefully:
 

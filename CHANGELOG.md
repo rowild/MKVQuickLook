@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.1.10 - 2026-10-10
+
+### Changed
+
+- `VLCKit` is embedded once instead of twice. The app is about 80 MB instead of 158 MB, and the DMG about 40 MB instead of 74 MB. The app embeds `VLCKit.framework` in `Contents/Frameworks`; the Quick Look extension only links it. Because `VLCKit` records its load path as `@loader_path/../Frameworks/...`, a build step of the extension target (`scripts/link-extension-to-app-vlckit.sh`) rewrites the extension's reference to `@loader_path/../../../../Frameworks/...` after linking and re-signs the binary ad hoc. The build fails if the reference is not the expected one.
+- `scripts/verify-vlckit-load-paths.sh` checks a built app (one `VLCKit` copy, every reference resolves). `install-local.sh` and `build-release-dmg.sh` run it before they install or package, and they now sign the app's `VLCKit` copy.
+- The test file `Tests/VideoLayoutTests.swift` is split by topic into `VideoLayoutTests`, `MediaKindTests`, `PreviewContentViewTests`, `PreviewPlaybackLifecycleTests`, `PreviewPlayerBindingTests`, `MediaPreviewPlayerSessionTests`, `RendererSmokeTests` and `TestSupport` (shared spies and helpers). All 41 existing tests are unchanged.
+
+### Added
+
+- Bundle tests `testBuiltAppEmbedsVLCKitOnce` and `testEveryBinaryCanResolveItsVLCKitLoadPath`. The second one resolves the app's and the extension's `VLCKit` load paths the way dyld does, so a bundle layout that would crash the extension at launch fails the tests.
+
+### Known Issues
+
+- The intermittent `VLCKit` teardown deadlock (see 0.1.9) hit the renderer smoke tests again in 1 of 3 runs while this release was prepared. The smoke tests do not involve the bundle layout. The trigger is still unknown.
+- All other Known Issues of 0.1.9 remain, except the app size, which this release fixes.
+
 ## 0.1.9 - 2026-10-10
 
 ### Fixed

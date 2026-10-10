@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.9` (`build 10`)
+Version: `0.1.10` (`build 11`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -40,7 +40,6 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 - **Routing depends on each Mac.** Quick Look picks a previewer by the type identifier macOS resolves for a file. Other installed apps can declare their own identifiers for `.ogg`, `.opus` or `.ogv`. This release covers the identifiers known so far (`org.xiph.ogg-audio`, `org.xiph.ogg-video`, and others). If a supported file still shows Apple's generic preview, please report the output of `mdls -name kMDItemContentType <file>`.
 - **Sound can continue after switching files.** When Finder switches from an MKVQuickLook preview to a file that another previewer shows (`.mp4`, `.mov`, `.avi`), Finder does not tell the extension. In column view, or with the preview pane open, the old preview stops anyway. In Gallery view, and in list or icon view without the preview pane, it keeps playing until Finder closes it.
 - **Rare freeze.** VLCKit can, rarely, deadlock while it shuts a player down. It was seen in stress tests, not yet in normal use. If Quick Look stops showing these files, open Activity Monitor and quit the process `MKVQuickLookPreviewExtension`. macOS starts a new one for the next preview.
-- **App size.** `VLCKit` (about 79 MB) is embedded twice, so the app is about 159 MB.
 - **Not notarized.** See "Gatekeeper" above.
 
 ## Playback Delays
@@ -71,9 +70,9 @@ The UI remains responsive during seeks — the slider position updates immediate
 - It does not need to be pre-installed on the Mac.
 - The app does not download it at runtime.
 - The framework is downloaded for development by `./scripts/bootstrap-vlckit.sh` into `Vendor/VLCKit.xcframework`.
-- During the build, Xcode embeds `VLCKit.framework` into the Quick Look extension bundle at:
-  `MKVQuickLook.app/Contents/PlugIns/MKVQuickLookPreviewExtension.appex/Contents/Frameworks/`
-- It embeds a second copy into `MKVQuickLook.app/Contents/Frameworks/` for the Renderer Lab in the host app.
+- During the build, Xcode embeds `VLCKit.framework` **once**, at `MKVQuickLook.app/Contents/Frameworks/`.
+- The Quick Look extension loads that copy. `VLCKit` records its load path as `@loader_path/../Frameworks/...` (next to the loading binary), so a build step of the extension target (`scripts/link-extension-to-app-vlckit.sh`) rewrites the extension's reference to `@loader_path/../../../../Frameworks/...` after linking.
+- `scripts/verify-vlckit-load-paths.sh` checks a built app (one copy, every reference resolves). The install and release scripts run it before they install or package anything.
 
 This means the shipped app is self-contained with respect to the playback backend.
 
@@ -175,8 +174,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.9`.
-5. Set the release title, for example `v0.1.9`.
+4. Create or select a tag such as `v0.1.10`.
+5. Set the release title, for example `v0.1.10`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -185,12 +184,12 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.9
-git push origin v0.1.9
+git tag v0.1.10
+git push origin v0.1.10
 
-gh release create v0.1.9 dist/MKVQuickLook-v0.1.9.dmg \
-  --title "v0.1.9" \
-  --notes-file <(./scripts/changelog-section.sh v0.1.9)
+gh release create v0.1.10 dist/MKVQuickLook-v0.1.10.dmg \
+  --title "v0.1.10" \
+  --notes-file <(./scripts/changelog-section.sh v0.1.10)
 ```
 
 `scripts/changelog-section.sh` prints only the `CHANGELOG.md` section for that version.
@@ -215,8 +214,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.9
-git push origin v0.1.9
+git tag v0.1.10
+git push origin v0.1.10
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.

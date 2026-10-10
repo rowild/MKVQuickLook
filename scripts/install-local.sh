@@ -11,7 +11,8 @@ APP_NAME="MKVQuickLook.app"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/Applications}"
 INSTALLED_APP_PATH="$INSTALL_DIR/$APP_NAME"
 EXTENSION_PATH="$INSTALLED_APP_PATH/Contents/PlugIns/MKVQuickLookPreviewExtension.appex"
-FRAMEWORK_PATH="$EXTENSION_PATH/Contents/Frameworks/VLCKit.framework"
+# VLCKit is embedded once, in the app; the extension loads that copy.
+FRAMEWORK_PATH="$INSTALLED_APP_PATH/Contents/Frameworks/VLCKit.framework"
 # A fixed build folder: searching Xcode's shared DerivedData could pick up a stale
 # build from another copy of this project.
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$ROOT_DIR/.build/install-derived-data}"
@@ -50,6 +51,8 @@ codesign --force --sign - --timestamp=none \
   --entitlements "$ROOT_DIR/MKVQuickLookPreviewExtension/MKVQuickLookPreviewExtension.entitlements" \
   "$EXTENSION_PATH"
 codesign --force --sign - --timestamp=none "$INSTALLED_APP_PATH"
+
+"$ROOT_DIR/scripts/verify-vlckit-load-paths.sh" "$INSTALLED_APP_PATH"
 
 echo "==> Installed to $INSTALLED_APP_PATH"
 echo "==> Refreshing Quick Look registration"

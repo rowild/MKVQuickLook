@@ -13,7 +13,8 @@ DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$ROOT_DIR/.build/release-derived-data}"
 BUILD_PRODUCTS_DIR="$DERIVED_DATA_PATH/Build/Products/$CONFIGURATION"
 APP_PATH="$BUILD_PRODUCTS_DIR/$APP_NAME"
 EXTENSION_PATH="$APP_PATH/Contents/PlugIns/MKVQuickLookPreviewExtension.appex"
-FRAMEWORK_PATH="$EXTENSION_PATH/Contents/Frameworks/VLCKit.framework"
+# VLCKit is embedded once, in the app; the extension loads that copy.
+FRAMEWORK_PATH="$APP_PATH/Contents/Frameworks/VLCKit.framework"
 ENTITLEMENTS_PATH="$ROOT_DIR/MKVQuickLookPreviewExtension/MKVQuickLookPreviewExtension.entitlements"
 DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist}"
 STAGE_DIR="$ROOT_DIR/.build/dmg-stage"
@@ -51,6 +52,8 @@ codesign --force --sign - --timestamp=none \
   --entitlements "$ENTITLEMENTS_PATH" \
   "$EXTENSION_PATH"
 codesign --force --sign - --timestamp=none "$APP_PATH"
+
+"$ROOT_DIR/scripts/verify-vlckit-load-paths.sh" "$APP_PATH"
 
 echo "==> Preparing DMG staging folder"
 rm -rf "$STAGE_DIR"
