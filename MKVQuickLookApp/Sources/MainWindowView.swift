@@ -9,7 +9,7 @@ struct MainWindowView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("MKVQuickLook")
                     .font(.largeTitle.weight(.semibold))
-                Text("Finder Quick Look preview extension scaffold for MKV, WebM, Ogg/Theora, and best-effort AVI.")
+                Text("Finder Quick Look previews for MKV, WebM, Ogg, and Opus files.")
                     .foregroundStyle(.secondary)
             }
 
@@ -31,9 +31,9 @@ struct MainWindowView: View {
                     .padding(.vertical, 4)
             }
 
-            GroupBox("Next Implementation Step") {
+            GroupBox("Renderer Lab") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Use the renderer lab to validate centering and playback behavior outside Finder before changing the Quick Look extension again.")
+                    Text("Play a file outside Finder with the same player that the Quick Look extension uses.")
                     Button("Open Renderer Lab") {
                         openWindow(id: "renderer-lab")
                     }

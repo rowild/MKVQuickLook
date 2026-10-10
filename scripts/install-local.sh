@@ -12,22 +12,31 @@ INSTALL_DIR="${INSTALL_DIR:-$HOME/Applications}"
 INSTALLED_APP_PATH="$INSTALL_DIR/$APP_NAME"
 EXTENSION_PATH="$INSTALLED_APP_PATH/Contents/PlugIns/MKVQuickLookPreviewExtension.appex"
 FRAMEWORK_PATH="$EXTENSION_PATH/Contents/Frameworks/VLCKit.framework"
+# A fixed build folder: searching Xcode's shared DerivedData could pick up a stale
+# build from another copy of this project.
+DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-$ROOT_DIR/.build/install-derived-data}"
+APP_PATH="$DERIVED_DATA_PATH/Build/Products/$CONFIGURATION/$APP_NAME"
+BUILD_LOG="/tmp/mkvquicklook-install-build.log"
 
 "$ROOT_DIR/scripts/bootstrap-vlckit.sh"
 
 echo "==> Building $APP_NAME"
-xcodebuild \
+if ! xcodebuild \
   -project "$PROJECT_PATH" \
   -scheme "$SCHEME" \
   -configuration "$CONFIGURATION" \
   -destination "$DESTINATION" \
+  -derivedDataPath "$DERIVED_DATA_PATH" \
   CODE_SIGNING_ALLOWED=NO \
-  build >/tmp/mkvquicklook-install-build.log 2>&1
+  build >"$BUILD_LOG" 2>&1; then
+  echo "Build failed. Full log: $BUILD_LOG"
+  grep -E "error:" "$BUILD_LOG" | head -n 20 || tail -n 30 "$BUILD_LOG"
+  exit 1
+fi
 
-APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path "*MKVQuickLook*/Build/Products/$CONFIGURATION/$APP_NAME" | tail -n 1)"
-
-if [[ -z "$APP_PATH" ]]; then
-  echo "Build succeeded but the app bundle could not be located."
+if [[ ! -d "$APP_PATH" ]]; then
+  echo "Build succeeded but the app bundle was not found at:"
+  echo "  $APP_PATH"
   exit 1
 fi
 

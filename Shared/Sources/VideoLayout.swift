@@ -2,6 +2,12 @@ import CoreGraphics
 
 enum VideoLayout {
     static func fittedRect(contentSize: CGSize, in bounds: CGRect) -> CGRect {
+        // A null rect (e.g. insetting bounds smaller than the inset) has an infinite
+        // origin; returning it would hand AppKit an invalid frame.
+        guard !bounds.isNull, !bounds.isInfinite else {
+            return .zero
+        }
+
         guard bounds.width.isFinite,
               bounds.height.isFinite,
               bounds.midX.isFinite,

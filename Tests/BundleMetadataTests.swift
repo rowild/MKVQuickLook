@@ -1,3 +1,4 @@
+import UniformTypeIdentifiers
 import XCTest
 
 final class BundleMetadataTests: XCTestCase {
@@ -25,10 +26,7 @@ final class BundleMetadataTests: XCTestCase {
     }
 
     func testExtensionSupportsCustomMediaTypes() throws {
-        let info = try extensionInfoDictionary()
-        let extensionDictionary = try XCTUnwrap(info["NSExtension"] as? [String: Any])
-        let attributes = try XCTUnwrap(extensionDictionary["NSExtensionAttributes"] as? [String: Any])
-        let supportedTypes = try XCTUnwrap(attributes["QLSupportedContentTypes"] as? [String])
+        let supportedTypes = try extensionSupportedContentTypes()
 
         XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.mkv"))
         XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.webm"))
@@ -36,6 +34,49 @@ final class BundleMetadataTests: XCTestCase {
         XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.avi"))
         XCTAssertTrue(supportedTypes.contains("com.robertwildling.mkvquicklook.opus"))
         XCTAssertTrue(supportedTypes.contains("org.xiph.opus"))
+    }
+
+    // Quick Look routes a file by the type identifier macOS resolves for it. Other
+    // installed apps (VLC, Chromium-based browsers, ...) can declare their own
+    // identifiers for the same extensions, and theirs may win over ours. So the
+    // extension must cover whatever identifier this Mac actually resolves.
+    func testExtensionCoversTypesResolvedOnThisMacForAdvertisedExtensions() throws {
+        let supportedTypes = try extensionSupportedContentTypes().compactMap { UTType($0) }
+
+        for fileExtension in ["mkv", "webm", "ogg", "ogv", "opus"] {
+            guard let resolvedType = UTType(filenameExtension: fileExtension), !resolvedType.isDynamic else {
+                // No app on this Mac declares the extension; nothing to route against.
+                continue
+            }
+
+            XCTAssertTrue(
+                supportedTypes.contains { resolvedType.conforms(to: $0) },
+                ".\(fileExtension) resolves to \(resolvedType.identifier) on this Mac, which QLSupportedContentTypes does not cover"
+            )
+        }
+    }
+
+    // VLCKit is LGPL-2.1. The distributed app must carry the license text.
+    func testBuiltAppShipsVLCKitLicense() throws {
+        let appURL = Bundle(for: Self.self).bundleURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("MKVQuickLook.app")
+        XCTAssertTrue(
+            FileManager.default.fileExists(atPath: appURL.path),
+            "Expected the built app next to the test bundle. Build and test with the MKVQuickLook scheme."
+        )
+
+        let licenseURL = appURL.appendingPathComponent("Contents/Resources/VLCKit-COPYING.txt")
+        let licenseText = try String(contentsOf: licenseURL, encoding: .utf8)
+
+        XCTAssertTrue(licenseText.contains("GNU LESSER GENERAL PUBLIC LICENSE"))
+    }
+
+    private func extensionSupportedContentTypes() throws -> [String] {
+        let info = try extensionInfoDictionary()
+        let extensionDictionary = try XCTUnwrap(info["NSExtension"] as? [String: Any])
+        let attributes = try XCTUnwrap(extensionDictionary["NSExtensionAttributes"] as? [String: Any])
+        return try XCTUnwrap(attributes["QLSupportedContentTypes"] as? [String])
     }
 
     private func appInfoDictionary() throws -> [String: Any] {

@@ -1,10 +1,11 @@
 import Foundation
 
 struct AppStatusViewModel {
-    let supportedFormats: [String] = ["mkv", "webm", "ogg", "ogv", "avi (best-effort)"]
+    let supportedFormats: [String] = ["mkv", "webm", "ogg", "ogv", "opus"]
     let previewExtensionBundleIdentifier = "com.robertwildling.MKVQuickLook.PreviewExtension"
     let playbackBackend = "VLCKit 3.7.2"
-    static let supportedImporterExtensions = ["mkv", "webm", "ogg", "ogv", "avi", "mp4", "mov"]
+    // The Renderer Lab also opens avi/mp4/mov for comparison; Quick Look does not advertise them.
+    static let supportedImporterExtensions = ["mkv", "webm", "ogg", "ogv", "opus", "avi", "mp4", "mov"]
 
     var appVersion: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
@@ -33,9 +34,9 @@ struct AppStatusViewModel {
             "Launch the app at least once after copying it to Applications.",
             "In Finder, select a supported file and press Space to invoke Quick Look.",
             "If Finder keeps using a stale preview, run qlmanage -r and reopen Finder.",
-            "Unsigned builds may trigger Gatekeeper on other Macs. That is expected in the current phase.",
-            "The host app now includes a renderer lab window that uses the same shared player path as the Quick Look extension.",
-            "The vendored VLCKit license text is stored in Vendor/VLCKit-COPYING.txt."
+            "This app is not notarized. Gatekeeper may warn the first time you open it on another Mac.",
+            "The Renderer Lab window plays files with the same player that the Quick Look extension uses.",
+            "VLCKit is licensed under the LGPL 2.1. The license text ships inside the app at Contents/Resources/VLCKit-COPYING.txt."
         ]
     }
 }

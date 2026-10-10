@@ -8,7 +8,7 @@ struct SettingsView: View {
             GroupBox("About") {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("This utility hosts the Quick Look preview extension.")
-                    Text("The extension now opens supported files through VLCKit and renders into a custom Quick Look view. The remaining work is runtime validation and polish.")
+                    Text("The extension plays supported files with VLCKit inside the Quick Look window.")
                         .foregroundStyle(.secondary)
                     Text("No external VLC installation or runtime download is required.")
                         .foregroundStyle(.secondary)

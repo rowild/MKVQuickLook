@@ -6,6 +6,7 @@ import VLCKit
 final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     private enum Constants {
         static let seekCoalescingInterval: TimeInterval = 0.03
+        static let parseTimeoutMilliseconds: Int32 = 5000
     }
 
     let renderView: NSView
@@ -13,9 +14,14 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     var playbackMetricsDidChange: ((MediaPreviewPlaybackMetrics) -> Void)?
     var videoPresentationSizeDidChange: ((CGSize?) -> Void)?
     var videoOutputVisibilityDidChange: ((Bool) -> Void)?
+    var mediaKindDidChange: ((PreviewMediaKind) -> Void)?
 
     private let videoView: VLCVideoView
     private let mediaPlayer: VLCMediaPlayer
+    // VLCMediaPlayer does not keep the VLCMedia object we hand it alive, and its
+    // `media` getter returns a different wrapper object. Keep our own reference so the
+    // parse delegate callback arrives and can be matched to the current file.
+    private var currentMedia: VLCMedia?
     private var pendingSeekPosition: Float?
     private var pendingSeekWorkItem: DispatchWorkItem?
     private var wasPlayingBeforeScrub = false
@@ -23,8 +29,6 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     private var activeVolumeInteractionID: PlaybackDiagnostics.InteractionID?
     private var awaitingSeekTimeChange = false
     private var pendingReportedSeekPosition: Float?
-    private var volumeFeedbackState = VolumeFeedbackState()
-    private var requestedMuted = false
     private var lastVisibleVideoOutput = false
     private var isTemporarilyMutedForPause = false
 
@@ -63,12 +67,18 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
 
     func loadMedia(from url: URL) {
         let media = VLCMedia(url: url)
-        media.synchronousParse()
-        videoPresentationSizeDidChange?(Self.presentationSize(from: media.tracksInformation))
+        media.delegate = self
+        // Parse asynchronously. A synchronous parse blocks the main thread, and with it
+        // the Quick Look window, on large files or slow volumes. Track results arrive in
+        // mediaDidFinishParsing(_:). `[]` is VLCMediaParseLocal (value 0): local files only.
+        if media.parse(options: [], timeout: Constants.parseTimeoutMilliseconds) != 0 {
+            PlaybackDiagnostics.log("[parse] start-failed url=\(url.lastPathComponent) t=\(PlaybackDiagnostics.timestampString())")
+        }
+        videoPresentationSizeDidChange?(nil)
+        currentMedia = media
         mediaPlayer.media = media
         awaitingSeekTimeChange = false
         pendingReportedSeekPosition = nil
-        volumeFeedbackState.clear()
         lastVisibleVideoOutput = false
         videoOutputVisibilityDidChange?(false)
         publishPlaybackMetrics()
@@ -80,7 +90,7 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
             return
         }
 
-        mediaPlayer.audio?.isMuted = requestedMuted
+        mediaPlayer.audio?.isMuted = false
         PlaybackDiagnostics.log("[prime] ready-paused t=\(PlaybackDiagnostics.timestampString())")
         publishPlaybackMetrics()
         playbackStateDidChange?(.paused)
@@ -89,7 +99,7 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
     func play() {
         PlaybackDiagnostics.log("[play] request t=\(PlaybackDiagnostics.timestampString())")
         isTemporarilyMutedForPause = false
-        mediaPlayer.audio?.isMuted = requestedMuted
+        mediaPlayer.audio?.isMuted = false
         playbackStateDidChange?(.opening)
         publishPlaybackMetrics()
         mediaPlayer.play()
@@ -104,17 +114,9 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         mediaPlayer.pause()
     }
 
-    func setMuted(_ muted: Bool) {
-        requestedMuted = muted
-        mediaPlayer.audio?.isMuted = muted
-        PlaybackDiagnostics.log("[mute] apply muted=\(muted) actual=\(mediaPlayer.audio?.isMuted ?? false) t=\(PlaybackDiagnostics.timestampString())")
-        publishPlaybackMetrics()
-    }
-
     func setVolume(_ volume: Int, interactionID: PlaybackDiagnostics.InteractionID?) {
         let clampedVolume = max(0, min(200, volume))
         activeVolumeInteractionID = interactionID
-        volumeFeedbackState.registerRequestedVolume(clampedVolume)
         mediaPlayer.audio?.volume = Int32(clampedVolume)
         let actualVolume = Int(mediaPlayer.audio?.volume ?? 0)
         PlaybackDiagnostics.log("[volume] apply id=\(interactionID ?? 0) target=\(clampedVolume) actual=\(actualVolume) t=\(PlaybackDiagnostics.timestampString())")
@@ -142,7 +144,9 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
             activeSeekInteractionID = interactionID
         }
         PlaybackDiagnostics.log("[seek] end id=\(activeSeekInteractionID ?? 0) t=\(PlaybackDiagnostics.timestampString())")
-        pendingSeekWorkItem?.perform()
+        // The view sends a final seek right after this call, so a pending coalesced
+        // seek is superseded and can be dropped.
+        pendingSeekWorkItem?.cancel()
         pendingSeekWorkItem = nil
         pendingSeekPosition = nil
 
@@ -228,12 +232,12 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         activeVolumeInteractionID = nil
         awaitingSeekTimeChange = false
         pendingReportedSeekPosition = nil
-        volumeFeedbackState.clear()
         lastVisibleVideoOutput = false
         isTemporarilyMutedForPause = true
         mediaPlayer.audio?.isMuted = true
         mediaPlayer.stop()
         mediaPlayer.media = nil
+        currentMedia = nil
         videoPresentationSizeDidChange?(nil)
         videoOutputVisibilityDidChange?(false)
         publishPlaybackMetrics()
@@ -252,17 +256,14 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         let elapsedText = elapsedTime.value == nil ? "0:00" : elapsedTime.stringValue
         let remainingText = remainingTime?.value == nil ? "--:--" : (remainingTime?.stringValue ?? "--:--")
         let effectivePosition = pendingReportedSeekPosition ?? mediaPlayer.position
-        let actualVolume = Int(mediaPlayer.audio?.volume ?? 100)
-        let effectiveVolume = volumeFeedbackState.effectiveVolume(actualVolume: actualVolume)
         let metrics = MediaPreviewPlaybackMetrics(
             position: max(0, min(1, effectivePosition)),
             isSeekable: mediaPlayer.isSeekable,
             elapsedText: elapsedText,
-            remainingText: remainingText,
-            volume: effectiveVolume
+            remainingText: remainingText
         )
         if let activeVolumeInteractionID {
-            PlaybackDiagnostics.log("[volume] metrics id=\(activeVolumeInteractionID) confirmed=\(metrics.volume) t=\(PlaybackDiagnostics.timestampString())")
+            PlaybackDiagnostics.log("[volume] metrics id=\(activeVolumeInteractionID) actual=\(Int(mediaPlayer.audio?.volume ?? 0)) t=\(PlaybackDiagnostics.timestampString())")
             self.activeVolumeInteractionID = nil
         }
         playbackMetricsDidChange?(metrics)
@@ -290,6 +291,22 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         return nil
     }
 
+    // Decides by track type, not by video size: VLCKit reports width/height 0 for
+    // some real video tracks (e.g. Theora in Ogg) after parsing.
+    nonisolated static func mediaKind(fromTracksInformation tracksInformation: [Any]) -> PreviewMediaKind? {
+        let trackTypes = tracksInformation.compactMap { track in
+            (track as? [AnyHashable: Any])?[VLCMediaTracksInformationType] as? String
+        }
+
+        if trackTypes.contains(VLCMediaTracksInformationTypeVideo) {
+            return .video
+        }
+        if trackTypes.contains(VLCMediaTracksInformationTypeAudio) {
+            return .audioOnly
+        }
+        return nil
+    }
+
     private static func numberValue(_ value: Any?) -> CGFloat? {
         if let number = value as? NSNumber {
             return CGFloat(number.doubleValue)
@@ -314,6 +331,31 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
 
     func saveSnapshot(to url: URL, width: Int = 0, height: Int = 0) {
         mediaPlayer.saveVideoSnapshot(at: url.path, withWidth: Int32(width), andHeight: Int32(height))
+    }
+}
+
+extension VLCKitMediaPreviewPlayer: VLCMediaDelegate {
+    nonisolated func mediaDidFinishParsing(_ aMedia: VLCMedia) {
+        let parsedMediaID = ObjectIdentifier(aMedia)
+        Task { @MainActor [weak self] in
+            self?.handleMediaDidFinishParsing(parsedMediaID)
+        }
+    }
+
+    private func handleMediaDidFinishParsing(_ parsedMediaID: ObjectIdentifier) {
+        // Ignore results for media that was replaced or stopped while parsing.
+        guard let media = currentMedia, ObjectIdentifier(media) == parsedMediaID else {
+            return
+        }
+
+        let tracksInformation = media.tracksInformation
+        PlaybackDiagnostics.log("[parse] done status=\(media.parsedStatus.rawValue) tracks=\(tracksInformation.count) t=\(PlaybackDiagnostics.timestampString())")
+        if let presentationSize = Self.presentationSize(from: tracksInformation) {
+            videoPresentationSizeDidChange?(presentationSize)
+        }
+        if let mediaKind = Self.mediaKind(fromTracksInformation: tracksInformation) {
+            mediaKindDidChange?(mediaKind)
+        }
     }
 }
 
@@ -346,7 +388,7 @@ extension VLCKitMediaPreviewPlayer: VLCMediaPlayerDelegate {
         case .playing:
             if isTemporarilyMutedForPause {
                 isTemporarilyMutedForPause = false
-                mediaPlayer.audio?.isMuted = requestedMuted
+                mediaPlayer.audio?.isMuted = false
             }
             mappedState = .playing
         case .paused:

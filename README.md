@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.7` (`build 8`)
+Version: `0.1.8` (`build 9`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -27,12 +27,19 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 - Quick Look Preview Extension registered for owned target file types
 - `VLCKit 3.7.2` fetched into `Vendor/` by a bootstrap script
 - direct VLCKit-backed playback path for supported files
-- audio-only `.opus` files use the same VLCKit backend with an audio preview UI
+- audio-only files (`.opus`, and Ogg files without a video track) use the same VLCKit backend with an audio preview UI; audio vs. video is decided from the tracks in the file
 - Finder registration and Launch Services ownership wired into the app bundle metadata
 - full Quick Look preview autoplays; compact Finder preview remains summary-only
 - renderer, metadata, and UI regressions covered by automated tests
-- hover overlay play/pause on the video frame (like native Quick Look)
+- hover overlay play/pause on the video frame (like native Quick Look); VoiceOver, Voice Control and Full Keyboard Access can use it as a button
 - seek and volume sliders jump immediately to click position
+
+## Known Limitations
+
+- **AVI is not supported.** While another app, such as VLC, is the default app for `.avi`, Quick Look uses Apple's own previewer. On macOS 26 that previewer cannot play AVI files with DivX (MPEG-4 Part 2) video and MP3 audio.
+- **Routing depends on each Mac.** Quick Look picks a previewer by the type identifier macOS resolves for a file. Other installed apps can declare their own identifiers for `.ogg`, `.opus` or `.ogv`. This release covers the identifiers known so far (`org.xiph.ogg-audio`, `org.xiph.ogg-video`, and others). If a supported file still shows Apple's generic preview, please report the output of `mdls -name kMDItemContentType <file>`.
+- **App size.** `VLCKit` (about 79 MB) is embedded twice, so the app is about 159 MB.
+- **Not notarized.** See "Gatekeeper" above.
 
 ## Playback Delays
 
@@ -64,8 +71,11 @@ The UI remains responsive during seeks — the slider position updates immediate
 - The framework is downloaded for development by `./scripts/bootstrap-vlckit.sh` into `Vendor/VLCKit.xcframework`.
 - During the build, Xcode embeds `VLCKit.framework` into the Quick Look extension bundle at:
   `MKVQuickLook.app/Contents/PlugIns/MKVQuickLookPreviewExtension.appex/Contents/Frameworks/`
+- It embeds a second copy into `MKVQuickLook.app/Contents/Frameworks/` for the Renderer Lab in the host app.
 
 This means the shipped app is self-contained with respect to the playback backend.
+
+`VLCKit` is licensed under the LGPL 2.1. The build copies its license text into the app at `MKVQuickLook.app/Contents/Resources/VLCKit-COPYING.txt`.
 
 ## Requirements
 
@@ -163,8 +173,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.7`.
-5. Set the release title, for example `v0.1.7`.
+4. Create or select a tag such as `v0.1.8`.
+5. Set the release title, for example `v0.1.8`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -173,19 +183,21 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.7
-git push origin v0.1.7
+git tag v0.1.8
+git push origin v0.1.8
 
-gh release create v0.1.7 dist/MKVQuickLook-v0.1.7.dmg \
-  --title "v0.1.7" \
-  --notes-file CHANGELOG.md
+gh release create v0.1.8 dist/MKVQuickLook-v0.1.8.dmg \
+  --title "v0.1.8" \
+  --notes-file <(./scripts/changelog-section.sh v0.1.8)
 ```
+
+`scripts/changelog-section.sh` prints only the `CHANGELOG.md` section for that version.
 
 That gives users a normal release download page while keeping the Git repository smaller and cleaner.
 
 ## Automatic GitHub Releases
 
-This repository now includes a GitHub Actions workflow at [`.github/workflows/release.yml`](/Users/robertwildling/Desktop/_WWW/_MKVQuickLook/.github/workflows/release.yml).
+This repository now includes a GitHub Actions workflow at [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 Behavior:
 
@@ -194,14 +206,15 @@ Behavior:
 - the workflow runs the non-GUI test suite
 - it builds the DMG with `./scripts/build-release-dmg.sh`
 - it creates or updates the GitHub Release for that tag
+- it uses only that version's `CHANGELOG.md` section as release notes, and fails if the section is missing
 - it uploads the generated DMG as a release asset
 
 Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.7
-git push origin v0.1.7
+git tag v0.1.8
+git push origin v0.1.8
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.
@@ -224,9 +237,9 @@ Notes about the current samples:
 
 - `example-videos/*.mkv` resolves to `org.matroska.mkv`
 - `example-videos/*.webm` resolves to `org.webmproject.webm`
-- the current `example-videos/big_buck_bunny_240p.ogg` sample resolves to audio on this system, not Theora video
+- `.ogg` and `.opus` samples can resolve to `org.xiph.ogg-audio` (declared by other installed apps) even when the file contains Theora video, as `example-videos/big_buck_bunny_240p.ogg` does
 
-So if you want to validate the original Ogg/Theora requirement specifically, add a real `.ogv` or Theora-in-Ogg sample.
+The type identifier only decides routing. The preview decides between the video and the audio-only layout from the tracks VLCKit finds in the file.
 
 ## Developer Test Media
 
@@ -240,6 +253,12 @@ Suggested local contents:
 - one `.webm` file
 - one `.opus` audio-only sample
 - one `.ogv` or Theora-in-Ogg sample if Ogg video support is being tested
+
+The renderer smoke tests (`RendererSmokeTests`, skipped in CI) need these exact file names:
+
+- `Reflections-test.mkv` (video)
+- `big_buck_bunny_240p.webm` (video)
+- `sample3.ogg` (audio-only Vorbis)
 
 Keep those files local only. If reproducible media fixtures are needed for automated tests, prefer tiny purpose-built samples or generated fixtures instead of large real-world files.
 

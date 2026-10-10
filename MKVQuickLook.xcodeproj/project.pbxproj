@@ -10,6 +10,7 @@
 		04AD3364848C6C9F1181F5D9 /* MediaPreviewPlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */; };
 		05ED2B3AB06CF53FBE41C024 /* VLCKitMediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */; };
 		09D842054D1327F0CDE6FC1D /* VLCKit.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 26CCAD556DF88A26642D0486 /* VLCKit.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		1217711BB06DBC176F83B23A /* PreviewPlayerBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */; };
 		1F289B33F3D8F5093D940555 /* MKVQuickLookApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1E78C95438488FF8658FB9C /* MKVQuickLookApp.swift */; };
 		226A44DD09A86E23A77A784E /* VLCKitMediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */; };
 		2A0D95E6FA2A542D2155D7FC /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F9D991977061BA25D21BFB70 /* Security.framework */; };
@@ -22,6 +23,7 @@
 		3C2B58691ED0D8F1CEFD730F /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E1EE6E8B183958E809ED768 /* VideoToolbox.framework */; };
 		3DA12CC066C56B61251996AB /* VideoLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82538038139633F4454BF3B8 /* VideoLayout.swift */; };
 		3E4C4A83A07B01771B7AF288 /* MediaPreviewPlayerSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */; };
+		4F317EF3CFB73CDCA26B23F5 /* PreviewPlayerBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */; };
 		4F70B1768253CC6D0CC94E8B /* MainWindowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6820EDD7105300E0B3C6FE /* MainWindowView.swift */; };
 		509B4B27E2803EB4E4308002 /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 71B770A4F3058220E670AE4D /* AVFoundation.framework */; };
 		5309DF9B48353020DDF8B815 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 40C73021684F36F46E4F3AE6 /* Quartz.framework */; };
@@ -46,6 +48,8 @@
 		ABB8B5E272A6FB0104FDFB8E /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D74DAEB38D6766046DE5347E /* libbz2.tbd */; };
 		B6C83FC0590ECB354C1B83C1 /* libc++.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 53262920855AB9A50B5556EB /* libc++.tbd */; };
 		B78A89B296FFC478525594C2 /* PreviewContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC92F78C77BBE4FDAFCE5507 /* PreviewContentView.swift */; };
+		BAADC961E4F81C15B4A524D5 /* PreviewPlayerBinding.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */; };
+		BE5C8DF61FA046A55278720C /* VLCKit-COPYING.txt in Resources */ = {isa = PBXBuildFile; fileRef = 552D8A08FF68DAAA9471E2A7 /* VLCKit-COPYING.txt */; };
 		BEFDB9743D8F2801EE86892C /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 302F0A0259C5144EFA8FEDAA /* CFNetwork.framework */; };
 		BFEB152260CF2FF0708C3B4C /* libxml2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 98E968768B248B4AB219931A /* libxml2.tbd */; };
 		C66F46BAD81946439885373F /* VLCKit.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26CCAD556DF88A26642D0486 /* VLCKit.xcframework */; };
@@ -132,6 +136,7 @@
 		3F02863FF64BFC509D849AB5 /* MKVQuickLookApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MKVQuickLookApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		40C73021684F36F46E4F3AE6 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
 		53262920855AB9A50B5556EB /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
+		552D8A08FF68DAAA9471E2A7 /* VLCKit-COPYING.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "VLCKit-COPYING.txt"; sourceTree = "<group>"; };
 		5C6820EDD7105300E0B3C6FE /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
 		71B770A4F3058220E670AE4D /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		82538038139633F4454BF3B8 /* VideoLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLayout.swift; sourceTree = "<group>"; };
@@ -148,6 +153,7 @@
 		B19D587EF5533CB9FA05EBFD /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		B1E78C95438488FF8658FB9C /* MKVQuickLookApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MKVQuickLookApp.swift; sourceTree = "<group>"; };
 		B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLCKitMediaPreviewPlayer.swift; sourceTree = "<group>"; };
+		B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewPlayerBinding.swift; sourceTree = "<group>"; };
 		BA9165C63B0A4167A6AFEAA0 /* PreviewViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewViewController.swift; sourceTree = "<group>"; };
 		CC92F78C77BBE4FDAFCE5507 /* PreviewContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewContentView.swift; sourceTree = "<group>"; };
 		CED5357DF3752411CC0A8B1E /* PlaybackDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackDiagnostics.swift; sourceTree = "<group>"; };
@@ -216,6 +222,7 @@
 			children = (
 				9555F7EA3CD226932F56DAAE /* MediaPreviewPlayer.swift */,
 				E70C1B6AEE09C5CEE98DA7B2 /* MediaPreviewPlayerSession.swift */,
+				B5BD7B54CC0663B89D4AF428 /* PreviewPlayerBinding.swift */,
 				B4C0D0E7E3433A3474B1CA13 /* VLCKitMediaPreviewPlayer.swift */,
 			);
 			path = Player;
@@ -281,6 +288,7 @@
 				AAA2339253BF36B5FFDBEFD1 /* MKVQuickLookPreviewExtension */,
 				AE8480E922CBD140747FCAFF /* Shared */,
 				20255350122B5710B3F7A656 /* Tests */,
+				8A32308324DBBE3C90EC3775 /* Vendor */,
 				3F6603031E0515BB5DD13FB9 /* Frameworks */,
 				5C99551E81031D2BF2A7430C /* Products */,
 			);
@@ -294,6 +302,14 @@
 				8813309CDD4827F5A7436239 /* MKVQuickLookTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		8A32308324DBBE3C90EC3775 /* Vendor */ = {
+			isa = PBXGroup;
+			children = (
+				552D8A08FF68DAAA9471E2A7 /* VLCKit-COPYING.txt */,
+			);
+			path = Vendor;
 			sourceTree = "<group>";
 		};
 		AAA2339253BF36B5FFDBEFD1 /* MKVQuickLookPreviewExtension */ = {
@@ -332,6 +348,7 @@
 			buildConfigurationList = BCD9085B9A2039D06DC4036C /* Build configuration list for PBXNativeTarget "MKVQuickLookApp" */;
 			buildPhases = (
 				B52C7A6866F60595E681CB85 /* Sources */,
+				29A9E12382A9A2CC00B7F88A /* Resources */,
 				893600E938ED5E1C6A96A61A /* Frameworks */,
 				CED9E5F4F673AAF312CB9998 /* Embed Foundation Extensions */,
 				3D334072E7CC69D1F470F37A /* Embed Frameworks */,
@@ -418,6 +435,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		29A9E12382A9A2CC00B7F88A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE5C8DF61FA046A55278720C /* VLCKit-COPYING.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		5D14BBB52FEDEBA33D9A96A1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -428,6 +456,7 @@
 				C6DD68259D9A89D903E9238C /* PlaybackDiagnostics.swift in Sources */,
 				EC0DB67FA2FA5419279BD272 /* PreviewContentView.swift in Sources */,
 				E41C8BF1F4FACA82DDD6B11D /* PreviewMetadata.swift in Sources */,
+				4F317EF3CFB73CDCA26B23F5 /* PreviewPlayerBinding.swift in Sources */,
 				3A5AC45C4441D15E3D0021C5 /* PreviewViewController.swift in Sources */,
 				05ED2B3AB06CF53FBE41C024 /* VLCKitMediaPreviewPlayer.swift in Sources */,
 				3DA12CC066C56B61251996AB /* VideoLayout.swift in Sources */,
@@ -444,6 +473,7 @@
 				CB5E07E8C6A42B9D1D2956A5 /* PlaybackDiagnostics.swift in Sources */,
 				2B88CFF90BCF0FB3170CED64 /* PreviewContentView.swift in Sources */,
 				EF7ADB30C280537CC95076AB /* PreviewMetadata.swift in Sources */,
+				BAADC961E4F81C15B4A524D5 /* PreviewPlayerBinding.swift in Sources */,
 				226A44DD09A86E23A77A784E /* VLCKitMediaPreviewPlayer.swift in Sources */,
 				A63F735E32903D86FBE2AB98 /* VideoLayout.swift in Sources */,
 				F0406FE4CA6E21CDCB54FD7A /* VideoLayoutTests.swift in Sources */,
@@ -464,6 +494,7 @@
 				578CD529E1ABB780CD20B7BF /* PlaybackLabWindowView.swift in Sources */,
 				B78A89B296FFC478525594C2 /* PreviewContentView.swift in Sources */,
 				91F8123782F4B2E9DB5F605D /* PreviewMetadata.swift in Sources */,
+				1217711BB06DBC176F83B23A /* PreviewPlayerBinding.swift in Sources */,
 				897ACF3AFB854EFB58CCB3F9 /* SettingsView.swift in Sources */,
 				EC8AC82706C2EA2AB3F398B1 /* VLCKitMediaPreviewPlayer.swift in Sources */,
 				E020F82932673E6AAAEF9802 /* VideoLayout.swift in Sources */,
@@ -540,7 +571,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -553,7 +584,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.7;
+				MARKETING_VERSION = 0.1.8;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -713,7 +744,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 8;
+				CURRENT_PROJECT_VERSION = 9;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -732,7 +763,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.7;
+				MARKETING_VERSION = 0.1.8;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

@@ -2,9 +2,9 @@
 
 Version snapshot:
 
-- release version: `0.1.7`
-- build number: `8`
-- snapshot date: `2026-04-16`
+- release version: `0.1.8`
+- build number: `9`
+- snapshot date: `2026-10-10`
 
 ## Goal
 
@@ -133,7 +133,9 @@ The extension supports:
 - the system/public media UTIs where useful
 - the custom `com.robertwildling...` UTIs above
 
-In practice, the custom owned UTIs are what made routing predictable.
+In practice, the custom owned UTIs are what made routing predictable on the original development Mac.
+
+Correction (0.1.8): that does not hold on every Mac. Other installed apps (for example Chromium-based browsers) declare `org.xiph.ogg-audio` / `org.xiph.ogg-video`, and macOS then resolves `.ogg`, `.oga`, `.opus` and `.ogv` to those identifiers instead of ours. The extension now lists them too. See Pitfall #12.
 
 ## Current Product Behavior
 
@@ -144,7 +146,8 @@ In practice, the custom owned UTIs are what made routing predictable.
 - problematic `Reflections.mkv` is now selected through the extension and renders in the correct position
 - large preview exposes manual controls
 - volume and seek controls exist
-- play/pause now lives in the control row beside the seek bar
+- video play/pause is the hover overlay on the video frame (since 0.1.5); the Play button is shown only in audio-only mode; the overlay is an accessibility button (since 0.1.8)
+- audio-only Ogg/Opus files use the audio layout; audio vs. video comes from the parsed VLC tracks (since 0.1.8)
 - diagnostics exist for volume and seek latency
 - dragging the volume knob lands at the release point correctly again
 - dragging the seek knob works
@@ -248,9 +251,15 @@ Important CI exception:
 
 The test suite must also keep explicit regression coverage for control-state bugs that already happened:
 
-- volume state must keep the latest requested value even if the player reports an older one
 - playback metrics must not overwrite the user-controlled volume slider position
 - active preview session replacement must stop the previous player
+- every player update and every control must pass through `PreviewPlayerBinding` (shared by the extension and the Renderer Lab)
+- re-applying the expanded mode during playback (every layout pass) must not show the placeholder over the video, and must not overwrite a failure message
+- the compact mode must stay summary-only when the player reports the media kind
+- the video play/pause overlay must be an accessible button whose label follows the playback state
+- `loadMedia` must return before VLC parsing finishes, and the parsed media kind / video size must still arrive (smoke tests)
+
+Removed in 0.1.8: the `VolumeFeedbackState` tests. That type only stored the last requested volume, and nothing displayed its value; the slider is never driven by player read-backs (see the metrics test above).
 
 ### Metadata Tests
 
@@ -259,6 +268,8 @@ These tests are also mandatory because Finder selection depends on metadata corr
 - app exports the custom media UTIs
 - app claims document ownership
 - extension supports the custom media UTIs
+- extension covers the type identifier this Mac resolves for every advertised extension (live `UTType(filenameExtension:)` check; dynamic types are skipped)
+- the built app contains the VLCKit LGPL license text
 
 If these tests fail, Finder may silently fall back to the system preview again.
 
@@ -480,7 +491,7 @@ Visible-frame smoke tests are mandatory for this repo:
 
 ```swift
 func testReflectionsMKVProducesVisibleVideoFrame() throws {
-    let sampleURL = try XCTUnwrap(sampleURL(named: "Reflections.mkv"))
+    let sampleURL = try sampleURL(named: "Reflections-test.mkv") // throws a named error if missing
     let player = try makePlayerInHostWindow()
 
     player.loadMedia(from: sampleURL)
@@ -702,9 +713,10 @@ Fix applied:
 Fix limitation — Quick Look extension still does not override system generator for `public.avi`:
 
 - even with `public.avi` claimed in both `CFBundleDocumentTypes` and `QLSupportedContentTypes`, the system `Movie.qlgenerator` in `/System/Library/QuickLook/` takes over for `public.avi` on any system where MKVQuickLook is not the active default opener for AVI
-- Quick Look routes to the Quick Look extension of whichever app is the registered default opener for the UTI; if that app is VLC (or anything other than MKVQuickLook), the system generator handles the preview instead
-- this is a macOS design constraint, not a bug: the only fix is to set MKVQuickLook as the default app for `.avi` via Finder → Get Info → Open With → Change All, or via `duti -s com.robertwildling.MKVQuickLookApp public.avi all`
-- in practice this is not critical: macOS `Movie.qlgenerator` handles AVI files with common codecs (MPEG-4 Part 2 / DivX, H.264, MP3) correctly via AVFoundation; our extension's irreplaceable value is for MKV, WebM, Ogg, and Opus which the system cannot preview at all
+- observed in 0.1.6 testing, not documented by Apple: Quick Look routes to the Quick Look extension of whichever app is the registered default opener for the UTI; if that app is VLC (or any app without a preview extension), the system generator handles the preview instead. No public API was found that raises a third-party extension's priority over the system preview.
+- the only routing fix is to set MKVQuickLook as the default app for `.avi` via Finder → Get Info → Open With → Change All, or with the third-party `duti` tool: `duti -s com.robertwildling.MKVQuickLook public.avi all`. This is not usable in practice today: the host app cannot open files, so double-clicking an `.avi` would only show the status window.
+- correction (2026-10-10): an earlier version of this note said the system generator previews common AVI codecs (MPEG-4 Part 2 / DivX, H.264, MP3) correctly via AVFoundation. That is false on macOS 26.6.2 (25G83). Measured with `example-videos/Chaplin, Charlie - 1923 - The Pilgrim.avi` (MPEG-4 Part 2 `DX50` video, MP3 audio): `public.avi` is listed in `AVURLAsset.audiovisualTypes()`, but `AVURLAsset.load(.isPlayable)` returns `false` and `load(.tracks)` returns no tracks. VLCKit 3.7.2 parses the same file without problems (672×528 video plus audio). AVI files whose codecs AVFoundation can decode may still preview through the system; that case is untested.
+- decision (2026-10-10): VLC stays the default AVI app. DivX/Xvid-style AVI files therefore get no working Quick Look preview. The extension's irreplaceable value is MKV, WebM, Ogg, and Opus, which the system cannot preview at all.
 
 Rule:
 
@@ -737,6 +749,86 @@ No-go:
 
 - do not present guesses, partial reasoning, or under-verified fixes as if they were solid conclusions
 
+Examples that actually happened:
+
+- 0.1.6 stated that the system `Movie.qlgenerator` plays DivX/MP3 AVI correctly. A measurement on macOS 26.6.2 showed AVFoundation opens such a file with no tracks (Pitfall #9).
+- the 0.1.7 changelog stated that all AVI references were removed; several remained on purpose.
+- a 2026-10-10 code review claimed `.serena/` would leak local caches into commits; Serena's own `.gitignore` already excluded them.
+
+### 12. Do Not Assume Our Exported UTIs Win Routing
+
+What went wrong:
+
+- on a Mac with Chromium-based browsers installed, `.ogg`, `.oga`, `.opus` resolved to `org.xiph.ogg-audio` and `.ogv` to `org.xiph.ogg-video`
+- `QLSupportedContentTypes` listed neither, so three of four advertised formats never reached the extension
+- the metadata tests only checked our own plist text, so they stayed green
+
+Rule:
+
+- the extension must cover the identifiers macOS actually resolves, not only the ones we export
+- keep the live resolution test in `BundleMetadataTests`; when someone reports a format that falls back to Apple's preview, add the identifier from `mdls -name kMDItemContentType <file>`
+
+### 13. Code That Runs On Every Layout Pass Must Be Idempotent
+
+What went wrong:
+
+- `PreviewViewController.viewDidLayout` calls `setPresentationMode` on every layout pass
+- `setPresentationMode(.expanded)` forced the placeholder visible with "Preparing video surface...", so a window resize or full screen put that text over a playing video and replaced failure messages
+- the Renderer Lab set the mode only once and wired the player by its own copy of the code, so it could not show the bug
+
+Rule:
+
+- anything reachable from `viewDidLayout` must derive state, not force it
+- the extension and the Renderer Lab must use the same wiring (`PreviewPlayerBinding`)
+
+### 14. VLCKit Object Lifetime And Identity
+
+What went wrong:
+
+- moving from `synchronousParse()` (deprecated, blocks the main thread) to `parse(options:timeout:)` first produced no parse callback at all
+- cause 1: `VLCMediaPlayer` does not keep the `VLCMedia` object we assign alive, so it was freed when `loadMedia` returned and its delegate callback was lost
+- cause 2: `mediaPlayer.media` returns a different wrapper object than the one assigned, so an identity check against it rejects the result
+
+Rule:
+
+- keep our own strong reference to the current `VLCMedia` (`currentMedia`) and compare against that
+- never parse synchronously on the main thread
+
+### 15. Decide Audio vs. Video From Track Types
+
+What went wrong:
+
+- only `.opus` was treated as audio-only, so audio-only `.ogg` files showed an empty black video frame
+- VLCKit reports `width`/`height` 0 for a real Theora video track after parsing, so a size-based rule would misclassify Theora `.ogg` as audio
+
+Rule:
+
+- media kind comes from the parsed track types (`VLCKitMediaPreviewPlayer.mediaKind(fromTracksInformation:)`); the file extension is only the initial guess
+
+### 16. XcodeGen Silently Ignores Unknown Keys
+
+What went wrong:
+
+- `project.yml` had `resources:` keys under the targets; XcodeGen ignores that key, so nothing was ever copied as a resource
+- as a result the VLCKit LGPL license text never shipped inside the app
+
+Rule:
+
+- add bundle files through `sources` with `buildPhase: resources`
+- verify the built bundle's contents with a test, not by reading `project.yml`
+
+### 17. Test Fixtures Must Fail Loudly When Missing
+
+What went wrong:
+
+- the renderer smoke tests loaded `example-videos/Reflections.mkv`, but the local sample was named `Reflections-test.mkv`
+- the tests failed locally with a file error and were skipped in CI, so no real-video test ran anywhere
+
+Rule:
+
+- a missing sample must fail with a message that names the file
+- README section "Developer Test Media" lists the exact sample names the smoke tests need
+
 ## Recommended Debug Workflow For Future Changes
 
 When something breaks, use this order:
@@ -765,11 +857,16 @@ Core implementation:
 - `Shared/Sources/PreviewContentView.swift`
 - `Shared/Sources/VideoLayout.swift`
 - `MKVQuickLookPreviewExtension/Sources/PreviewViewController.swift`
+- `Shared/Sources/Player/PreviewPlayerBinding.swift`
 
 Installation and registration:
 
 - `scripts/install-local.sh`
 - `scripts/reset-quicklook.sh`
+
+Release:
+
+- `scripts/changelog-section.sh` (release notes for one version; used by the release workflow)
 
 Tests that must not be removed:
 
@@ -787,7 +884,18 @@ The project now has:
 - renderer smoke tests
 - metadata regression tests
 - settings/help UI
-- host-app playback lab for renderer debugging
+- host-app playback lab for renderer debugging, sharing the extension's player wiring
+- asynchronous VLC parsing (no main-thread parse)
+- accessible video play/pause overlay
+- VLCKit LGPL license shipped inside the app
+
+Known unresolved limitations (0.1.8):
+
+- routing depends on the type identifiers each Mac resolves; only the identifiers seen so far are covered
+- AVI with codecs AVFoundation cannot decode (DivX/MP3) gets no working preview while another app is the default `.avi` app; the host app cannot open files, so making it the default AVI app is not practical
+- VLCKit (~79 MB) is embedded twice (app and extension); the app is ~159 MB
+- not verified: a Finder preview pane larger than 720 × 440 pt counts as the expanded player and may autoplay with sound
+- the release workflow pins Xcode 16.2 (Swift 6.0); local development used Xcode 27 (Swift 6.4), so Swift 6.0 compatibility is only proven by the CI run
 
 ## Next Safe Improvements
 
@@ -797,6 +905,9 @@ These are reasonable future changes:
 - improve playback controls polish
 - strengthen logging around extension lifecycle and file type routing
 - document release packaging and distribution more cleanly
+- embed VLCKit once and load it from the host app from the extension (needs sandbox and code-signing verification)
+- let the host app open media files (for example in the Renderer Lab), so being the default app for a type is usable
+- split `Tests/VideoLayoutTests.swift` by topic (needs `xcodegen generate` for new files)
 
 These are risky and should be approached carefully:
 

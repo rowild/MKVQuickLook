@@ -11,41 +11,6 @@ final class VideoLayoutTests: XCTestCase {
         )
     }
 
-    func testVolumeFeedbackStateKeepsRequestedVolumeUntilActualCatchesUp() {
-        var state = VolumeFeedbackState()
-        state.registerRequestedVolume(137)
-
-        XCTAssertEqual(state.effectiveVolume(actualVolume: 100), 137)
-        XCTAssertEqual(state.pendingVolume, 137)
-        XCTAssertEqual(state.effectiveVolume(actualVolume: 137), 137)
-        XCTAssertEqual(state.pendingVolume, 137)
-    }
-
-    func testVolumeFeedbackStateFallsBackToActualVolumeWhenNoPendingValueExists() {
-        var state = VolumeFeedbackState()
-
-        XCTAssertEqual(state.effectiveVolume(actualVolume: 82), 100)
-
-        state.registerRequestedVolume(91)
-        state.clear()
-
-        XCTAssertEqual(state.effectiveVolume(actualVolume: 77), 100)
-    }
-
-    func testVolumeFeedbackStateKeepsLatestRequestedVolumeEvenIfPlayerReportsOlderValue() {
-        var state = VolumeFeedbackState()
-
-        state.registerRequestedVolume(120)
-        XCTAssertEqual(state.effectiveVolume(actualVolume: 120), 120)
-
-        state.registerRequestedVolume(184)
-
-        XCTAssertEqual(state.effectiveVolume(actualVolume: 120), 184)
-        XCTAssertEqual(state.pendingVolume, 184)
-        XCTAssertEqual(state.effectiveVolume(actualVolume: 140), 184)
-        XCTAssertEqual(state.pendingVolume, 184)
-    }
-
     func testCentersFourByThreeVideoInsideWideBounds() {
         let rect = VideoLayout.fittedRect(
             contentSize: CGSize(width: 512, height: 384),
@@ -70,6 +35,17 @@ final class VideoLayoutTests: XCTestCase {
         XCTAssertEqual(rect.height, 337, accuracy: 1)
     }
 
+    // PreviewContentView insets the video frame bounds by 1 pt. While the frame is
+    // still smaller than 2 pt, that yields CGRect.null (infinite origin), which AppKit
+    // rejects as "Invalid view geometry".
+    func testNullBoundsGiveFiniteRect() {
+        let tinyBounds = CGRect(x: 0, y: 0, width: 1, height: 1).insetBy(dx: 1, dy: 1)
+
+        let rect = VideoLayout.fittedRect(contentSize: CGSize(width: 16, height: 9), in: tinyBounds)
+
+        XCTAssertEqual(rect, .zero)
+    }
+
     func testReturnsBoundsForInvalidContentSize() {
         let bounds = CGRect(x: 10, y: 20, width: 320, height: 180)
         let rect = VideoLayout.fittedRect(contentSize: .zero, in: bounds)
@@ -91,6 +67,90 @@ final class VideoLayoutTests: XCTestCase {
         previewView.updatePlaybackState(.paused)
 
         XCTAssertFalse(previewView.isPlaceholderVisibleForTesting)
+    }
+
+    // PreviewViewController.viewDidLayout re-applies the presentation mode on every
+    // layout pass (window resize, full screen), including while the video plays.
+    @MainActor
+    func testPlaceholderStaysHiddenWhenExpandedModeIsReappliedDuringPlayback() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+        previewView.updatePlaybackState(.opening)
+        previewView.setVideoOutputVisible(true)
+        previewView.updatePlaybackState(.playing)
+
+        previewView.setPresentationMode(.expanded)
+
+        XCTAssertFalse(previewView.isPlaceholderVisibleForTesting)
+    }
+
+    @MainActor
+    func testFailureMessageSurvivesReapplyingExpandedMode() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+        previewView.updatePlaybackState(.failed("codec error"))
+
+        previewView.setPresentationMode(.expanded)
+
+        XCTAssertTrue(previewView.isPlaceholderVisibleForTesting)
+        XCTAssertEqual(previewView.placeholderTextForTesting, "Playback failed")
+    }
+
+    // Video mode hides the Play button; the hover overlay is the only play/pause
+    // control, so VoiceOver and other accessibility clients must be able to use it.
+    @MainActor
+    func testVideoPlayPauseControlIsAnAccessibleButton() throws {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setMediaKind(.video)
+        previewView.setPresentationMode(.expanded)
+        var toggleCount = 0
+        previewView.playbackToggleHandler = { toggleCount += 1 }
+
+        let playButton = try XCTUnwrap(
+            accessibleButtons(under: previewView).first { $0.accessibilityLabel() == "Play" },
+            "No accessible Play button in expanded video mode"
+        )
+        XCTAssertTrue(playButton.accessibilityPerformPress())
+        XCTAssertEqual(toggleCount, 1)
+
+        previewView.updatePlaybackState(.playing)
+        XCTAssertEqual(playButton.accessibilityLabel(), "Pause")
+    }
+
+    // Track dictionaries below mirror what VLCKit 3.7.2 reports after parsing the
+    // local example-videos samples.
+    func testTracksWithOnlyAudioAreAudioOnly() {
+        let vorbisOgg: [Any] = [
+            ["type": "audio", "codec": 1651666806, "rate": 44100] as [String: Any]
+        ]
+
+        XCTAssertEqual(VLCKitMediaPreviewPlayer.mediaKind(fromTracksInformation: vorbisOgg), .audioOnly)
+    }
+
+    func testTheoraTrackWithoutParsedSizeStillCountsAsVideo() {
+        let theoraOgg: [Any] = [
+            ["type": "video", "codec": 1868916852, "width": 0, "height": 0] as [String: Any],
+            ["type": "audio", "codec": 1651666806, "rate": 44100] as [String: Any]
+        ]
+
+        XCTAssertEqual(VLCKitMediaPreviewPlayer.mediaKind(fromTracksInformation: theoraOgg), .video)
+    }
+
+    func testVideoWithAudioAndSubtitlesIsVideo() {
+        let mkv: [Any] = [
+            ["type": "video", "codec": 875967080, "width": 512, "height": 384] as [String: Any],
+            ["type": "audio", "codec": 1630826605, "rate": 44100] as [String: Any],
+            ["type": "text", "codec": 1952609651] as [String: Any]
+        ]
+
+        XCTAssertEqual(VLCKitMediaPreviewPlayer.mediaKind(fromTracksInformation: mkv), .video)
+    }
+
+    func testNoAudioOrVideoTracksGiveNoMediaKind() {
+        XCTAssertNil(VLCKitMediaPreviewPlayer.mediaKind(fromTracksInformation: []))
+        XCTAssertNil(VLCKitMediaPreviewPlayer.mediaKind(fromTracksInformation: [
+            ["type": "text", "codec": 1952609651] as [String: Any]
+        ]))
     }
 
     @MainActor
@@ -118,6 +178,19 @@ final class VideoLayoutTests: XCTestCase {
         XCTAssertFalse(previewView.isControlsRowHiddenForTesting)
     }
 
+    // The compact Finder preview must stay summary-only, even when the player reports
+    // the media kind (which re-runs the expanded-mode layout rules).
+    @MainActor
+    func testCompactModeKeepsVideoFrameAndControlsHiddenWhenMediaKindChanges() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 260, height: 120))
+        previewView.setPresentationMode(.compact)
+
+        previewView.setMediaKind(.video)
+
+        XCTAssertTrue(previewView.isVideoFrameHiddenForTesting)
+        XCTAssertTrue(previewView.isControlsRowHiddenForTesting)
+    }
+
     @MainActor
     func testPlaybackMetricsDoNotOverwriteUserControlledVolumeSliderValue() {
         let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
@@ -128,13 +201,73 @@ final class VideoLayoutTests: XCTestCase {
             position: 0.2,
             isSeekable: true,
             elapsedText: "0:10",
-            remainingText: "-0:20",
-            volume: 40
+            remainingText: "-0:20"
         )
 
         previewView.updatePlaybackMetrics(metrics)
 
         XCTAssertEqual(previewView.volumeSliderValueForTesting, 173)
+    }
+
+    // The extension and the Renderer Lab both use PreviewPlayerBinding, so these tests
+    // cover the wiring of both hosts.
+    @MainActor
+    func testBindingForwardsEveryPlayerUpdateToTheView() {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setPresentationMode(.expanded)
+        let player = PlayerSpy()
+        PreviewPlayerBinding.forwardUpdates(from: player, to: previewView)
+
+        player.playbackStateDidChange?(.paused)
+        XCTAssertEqual(previewView.placeholderTextForTesting, "Playback paused. Click Play to continue.")
+
+        player.videoOutputVisibilityDidChange?(true)
+        XCTAssertFalse(previewView.isPlaceholderVisibleForTesting)
+
+        player.playbackMetricsDidChange?(MediaPreviewPlaybackMetrics(
+            position: 0.5, isSeekable: true, elapsedText: "1:23", remainingText: "-1:23"
+        ))
+        XCTAssertEqual(previewView.elapsedTimeTextForTesting, "1:23")
+
+        player.videoPresentationSizeDidChange?(CGSize(width: 400, height: 400))
+        previewView.layoutSubtreeIfNeeded()
+        let canvas = previewView.videoCanvasFrameForTesting
+        XCTAssertEqual(canvas.width, canvas.height, accuracy: 1, "a square video must get a square canvas")
+
+        player.mediaKindDidChange?(.audioOnly)
+        XCTAssertTrue(previewView.isVideoFrameHiddenForTesting)
+    }
+
+    @MainActor
+    func testBindingRoutesEveryControlToTheCurrentPlayer() throws {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        previewView.setMediaKind(.video)
+        previewView.setPresentationMode(.expanded)
+        let first = PlayerSpy()
+        // A reference holder: the routing closure is @MainActor (so Sendable) and must
+        // not capture a mutable local variable.
+        let current = PlayerHolder(first)
+        PreviewPlayerBinding.routeControls(of: previewView, to: { current.player }, logContext: "test")
+
+        let playPause = try XCTUnwrap(accessibleButtons(under: previewView).first { $0.accessibilityLabel() == "Play" })
+        XCTAssertTrue(playPause.accessibilityPerformPress())
+        previewView.seekTrackingHandler?(true, 1)
+        previewView.seekHandler?(0.25, false, 1)
+        previewView.seekTrackingHandler?(false, 1)
+        previewView.volumeHandler?(150, 2)
+
+        XCTAssertEqual(first.togglePlaybackCount, 1)
+        XCTAssertEqual(first.scrubbingCalls, ["begin", "end"])
+        XCTAssertEqual(first.seekRequests, ["0.25 final=false"])
+        XCTAssertEqual(first.requestedVolumes, [150])
+
+        // The extension replaces its player for every new file.
+        let second = PlayerSpy()
+        current.player = second
+        XCTAssertTrue(playPause.accessibilityPerformPress())
+
+        XCTAssertEqual(first.togglePlaybackCount, 1)
+        XCTAssertEqual(second.togglePlaybackCount, 1)
     }
 
     @MainActor
@@ -172,40 +305,104 @@ final class VideoLayoutTests: XCTestCase {
 }
 
 @MainActor
+private func accessibleButtons(under element: NSAccessibilityProtocol) -> [NSAccessibilityProtocol] {
+    var buttons: [NSAccessibilityProtocol] = []
+    for case let child as NSAccessibilityProtocol in element.accessibilityChildren() ?? [] {
+        if child.accessibilityRole() == .button {
+            buttons.append(child)
+        }
+        buttons += accessibleButtons(under: child)
+    }
+    return buttons
+}
+
+@MainActor
+private final class PlayerHolder {
+    var player: PlayerSpy?
+
+    init(_ player: PlayerSpy?) {
+        self.player = player
+    }
+}
+
+@MainActor
 private final class PlayerSpy: MediaPreviewPlayer {
     let renderView = NSView()
     var playbackStateDidChange: ((MediaPreviewPlaybackState) -> Void)?
     var playbackMetricsDidChange: ((MediaPreviewPlaybackMetrics) -> Void)?
     var videoPresentationSizeDidChange: ((CGSize?) -> Void)?
     var videoOutputVisibilityDidChange: ((Bool) -> Void)?
+    var mediaKindDidChange: ((PreviewMediaKind) -> Void)?
     private(set) var stopCalled = false
+    private(set) var togglePlaybackCount = 0
+    private(set) var requestedVolumes: [Int] = []
+    private(set) var scrubbingCalls: [String] = []
+    private(set) var seekRequests: [String] = []
 
     func loadMedia(from url: URL) {}
     func primeForPausedStart() {}
     func play() {}
     func pause() {}
-    func setMuted(_ muted: Bool) {}
-    func setVolume(_ volume: Int, interactionID: PlaybackDiagnostics.InteractionID?) {}
-    func beginScrubbing(interactionID: PlaybackDiagnostics.InteractionID?) {}
-    func endScrubbing(interactionID: PlaybackDiagnostics.InteractionID?) {}
-    func seek(to position: Float, isFinal: Bool, interactionID: PlaybackDiagnostics.InteractionID?) {}
+    func setVolume(_ volume: Int, interactionID: PlaybackDiagnostics.InteractionID?) { requestedVolumes.append(volume) }
+    func beginScrubbing(interactionID: PlaybackDiagnostics.InteractionID?) { scrubbingCalls.append("begin") }
+    func endScrubbing(interactionID: PlaybackDiagnostics.InteractionID?) { scrubbingCalls.append("end") }
+    func seek(to position: Float, isFinal: Bool, interactionID: PlaybackDiagnostics.InteractionID?) {
+        seekRequests.append("\(position) final=\(isFinal)")
+    }
     func refreshVideoLayout() {}
-    func togglePlayback() {}
+    func togglePlayback() { togglePlaybackCount += 1 }
     func stop() { stopCalled = true }
 }
 
 @MainActor
 final class RendererSmokeTests: XCTestCase {
     func testReflectionsMKVProducesVisibleVideoFrame() throws {
-        try assertVisibleVideoFrame(for: sampleURL(named: "Reflections.mkv"))
+        try assertVisibleVideoFrame(for: sampleURL(named: "Reflections-test.mkv"))
     }
 
     func testWebMProducesVisibleVideoFrame() throws {
         try assertVisibleVideoFrame(for: sampleURL(named: "big_buck_bunny_240p.webm"))
     }
 
+    func testLoadMediaReturnsBeforeParsingAndReportsAudioOnlyKindLater() throws {
+        let player = VLCKitMediaPreviewPlayer()
+        var reportedKinds: [PreviewMediaKind] = []
+        let kindReported = expectation(description: "media kind reported")
+        player.mediaKindDidChange = {
+            reportedKinds.append($0)
+            kindReported.fulfill()
+        }
+        defer { player.stop() }
+
+        player.loadMedia(from: try sampleURL(named: "sample3.ogg"))
+
+        // A synchronous parse inside loadMedia blocks the main thread, and with it the
+        // Quick Look window, on large files or slow volumes.
+        XCTAssertEqual(reportedKinds, [], "loadMedia must not parse the file synchronously")
+
+        wait(for: [kindReported], timeout: 10)
+        XCTAssertEqual(reportedKinds, [.audioOnly])
+    }
+
+    func testLoadMediaReportsParsedVideoPresentationSize() throws {
+        let player = VLCKitMediaPreviewPlayer()
+        var lastReportedSize: CGSize?
+        let sizeReported = expectation(description: "parsed video size reported")
+        player.videoPresentationSizeDidChange = { size in
+            guard let size else { return }
+            lastReportedSize = size
+            sizeReported.fulfill()
+        }
+        defer { player.stop() }
+
+        player.loadMedia(from: try sampleURL(named: "Reflections-test.mkv"))
+
+        wait(for: [sizeReported], timeout: 10)
+        XCTAssertEqual(lastReportedSize, CGSize(width: 512, height: 384))
+    }
+
     func testPrimePausedStartCanTransitionToPlaying() throws {
-        let url = sampleURL(named: "Reflections.mkv")
+        let url = try sampleURL(named: "Reflections-test.mkv")
         let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
         previewView.setPresentationMode(.expanded)
         previewView.apply(metadata: try PreviewMetadata(fileURL: url))
@@ -322,12 +519,16 @@ final class RendererSmokeTests: XCTestCase {
         )
     }
 
-    private func sampleURL(named name: String) -> URL {
-        URL(fileURLWithPath: #filePath)
+    private func sampleURL(named name: String) throws -> URL {
+        let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .appendingPathComponent("example-videos")
             .appendingPathComponent(name)
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw MissingSampleError(name: name)
+        }
+        return url
     }
 
     private func waitUntil(timeout: TimeInterval, condition: () -> Bool) -> Bool {
@@ -338,5 +539,13 @@ final class RendererSmokeTests: XCTestCase {
             }
         }
         return false
+    }
+}
+
+private struct MissingSampleError: LocalizedError {
+    let name: String
+
+    var errorDescription: String? {
+        "Missing local sample example-videos/\(name). See README section \"Developer Test Media\"."
     }
 }

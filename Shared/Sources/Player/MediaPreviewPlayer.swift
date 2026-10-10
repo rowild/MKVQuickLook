@@ -16,23 +16,6 @@ struct MediaPreviewPlaybackMetrics: Equatable {
     let isSeekable: Bool
     let elapsedText: String
     let remainingText: String
-    let volume: Int
-}
-
-struct VolumeFeedbackState {
-    private(set) var pendingVolume: Int = 100
-
-    mutating func registerRequestedVolume(_ volume: Int) {
-        pendingVolume = max(0, min(200, volume))
-    }
-
-    mutating func effectiveVolume(actualVolume: Int) -> Int {
-        return pendingVolume
-    }
-
-    mutating func clear() {
-        pendingVolume = 100
-    }
 }
 
 @MainActor
@@ -42,12 +25,12 @@ protocol MediaPreviewPlayer: AnyObject {
     var playbackMetricsDidChange: ((MediaPreviewPlaybackMetrics) -> Void)? { get set }
     var videoPresentationSizeDidChange: ((CGSize?) -> Void)? { get set }
     var videoOutputVisibilityDidChange: ((Bool) -> Void)? { get set }
+    var mediaKindDidChange: ((PreviewMediaKind) -> Void)? { get set }
 
     func loadMedia(from url: URL)
     func primeForPausedStart()
     func play()
     func pause()
-    func setMuted(_ muted: Bool)
     func setVolume(_ volume: Int, interactionID: PlaybackDiagnostics.InteractionID?)
     func beginScrubbing(interactionID: PlaybackDiagnostics.InteractionID?)
     func endScrubbing(interactionID: PlaybackDiagnostics.InteractionID?)

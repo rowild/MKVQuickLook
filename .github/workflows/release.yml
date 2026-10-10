@@ -55,10 +55,13 @@ jobs:
             exit 1
           fi
 
+          # Only this version's CHANGELOG section; fails if the section is missing.
+          ./scripts/changelog-section.sh "$TAG_NAME" > release-notes.md
+
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" "$DMG_PATH" --clobber
           else
             gh release create "$TAG_NAME" "$DMG_PATH" \
               --title "$TAG_NAME" \
-              --notes-file CHANGELOG.md
+              --notes-file release-notes.md
           fi

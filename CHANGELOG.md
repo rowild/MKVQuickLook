@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+## 0.1.8 - 2026-10-10
+
+### Fixed
+
+- `.ogg`, `.oga`, `.opus` and `.ogv` files now reach the Quick Look extension on Macs where another app (for example a Chromium-based browser) declares `org.xiph.ogg-audio` / `org.xiph.ogg-video`. macOS resolved these files to those identifiers, which `QLSupportedContentTypes` did not list. A new test checks the identifier this Mac resolves for every advertised extension.
+- The "Preparing video surface..." placeholder no longer reappears over a playing video after a layout pass (window resize, full screen). A failure message is no longer replaced on the next layout pass.
+- Audio-only Ogg files use the audio preview layout instead of an empty black video frame. Audio vs. video is now decided from the tracks VLCKit parses, not from the file extension.
+- Renderer smoke tests pointed to a missing `Reflections.mkv` sample. They now use `Reflections-test.mkv` and name the missing file when a local sample is absent.
+- Loading a file no longer parses it on the main thread. The deprecated `synchronousParse()` blocked the Quick Look window on large files or slow volumes. Parsing now runs asynchronously (`parse(options:timeout:)`, 5 s timeout), and the video size and audio/video kind arrive through `mediaDidFinishParsing(_:)`. The player keeps its own reference to the current `VLCMedia`, because `VLCMediaPlayer` does not keep it alive and its `media` getter returns a different object.
+- AppKit no longer logs "Invalid view geometry" while the video frame is smaller than 2 pt. `VideoLayout.fittedRect` returned the null rect (infinite origin) it got from insetting tiny bounds; it now returns `.zero` for null or infinite bounds.
+
+### Added
+
+- The video play/pause overlay is an accessibility button ("Play" / "Pause"), so VoiceOver, Voice Control and Full Keyboard Access can start and pause a video.
+- The app ships the VLCKit license (LGPL 2.1) at `MKVQuickLook.app/Contents/Resources/VLCKit-COPYING.txt`. A test checks the built app for it.
+
+### Changed
+
+- The host app no longer advertises AVI and now lists Opus in its supported formats. Leftover development wording ("scaffold", "Next Implementation Step", "remaining work", "current phase") was replaced.
+- The Renderer Lab can open `.opus` files.
+- The Quick Look extension and the Renderer Lab now share one tested player/view wiring (`PreviewPlayerBinding`) instead of two hand-copied versions. Diagnostics keep the `controller-*` and `lab-*` log names.
+- `PreviewContentView` stores its presentation mode instead of reading it from a hidden label.
+- Removed code without effect: `VolumeFeedbackState` and `MediaPreviewPlaybackMetrics.volume` (the view never read them), the unused `setMuted`, an empty `updateTrackingAreas` override, a `perform()` in `endScrubbing` that never applied a seek, and redundant `await MainActor.run` calls. The `[volume] metrics` log now reports the actual VLCKit volume.
+- `scripts/install-local.sh` builds into its own `.build/install-derived-data` folder instead of searching Xcode's shared DerivedData, which could pick up a stale build from another copy of the project. A failed build now prints the errors and the log path.
+- GitHub releases use only the matching `CHANGELOG.md` section as release notes (`scripts/changelog-section.sh`), not the whole file. The release job fails if that section is missing.
+- `.claude/settings.json`: removed permission rules for a deleted file and for an old project path.
+- `project.yml`: removed the `resources:` keys. XcodeGen ignored them, so they never copied anything; regenerating the project without them produces an identical project file. The license file is added through `sources` with `buildPhase: resources`.
+
+### Documentation
+
+- README: fixed the workflow link, which pointed to a local path on the developer's Mac.
+- The 0.1.7 entry said all AVI references were removed. The bundle registration, the bundle metadata tests, and the Renderer Lab still reference AVI on purpose.
+- Corrected the AVI notes in `.plans/01-initial-plan.md` (Pitfall #9). This also corrects the 0.1.6 Known Issues entry, which said the system preview plays AVI files with common codecs. On macOS 26.6.2, AVFoundation opens an AVI with MPEG-4 Part 2 (DivX) video and MP3 audio with no tracks, so the system preview cannot play it. While VLC (or any other app without a Quick Look extension) is the default `.avi` app, such files get no working preview. VLC stays the default AVI app by decision.
+- Fixed the `duti` example, which used a wrong bundle identifier (`com.robertwildling.MKVQuickLookApp` instead of `com.robertwildling.MKVQuickLook`).
+
+### Known Issues
+
+- Quick Look routing still depends on the type identifier each Mac resolves for a file, and other installed apps can declare their own identifiers. This release covers the identifiers seen on the development Mac (`org.xiph.ogg-audio`, `org.xiph.ogg-video`). A Mac where yet another app wins can still route a format past the extension; the new bundle test reports this on the machine that runs it.
+- AVI files with codecs AVFoundation cannot decode (for example DivX/MP3) get no working Quick Look preview while another app, such as VLC, is the default `.avi` app. Making MKVQuickLook the default AVI app is not practical: the host app cannot open files, so a double-click would only show its status window.
+- VLCKit (about 79 MB) is embedded twice, in the app and in the extension, so the app is about 159 MB.
+- Not verified: a Finder preview pane larger than 720 × 440 pt is treated as the full Quick Look player and may start playback with sound.
+- Seek and volume delays are inherent pipeline constraints, not bugs. See README section "Playback Delays".
+- The app is ad hoc signed and not notarized. See README section "Gatekeeper".
+
 ## 0.1.7 - 2026-04-16
 
 ### Changed

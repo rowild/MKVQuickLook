@@ -33,6 +33,8 @@
 				<string>org.matroska.mkv</string>
 				<string>org.webmproject.webm</string>
 				<string>org.xiph.ogv</string>
+				<string>org.xiph.ogg-video</string>
+				<string>org.xiph.ogg-audio</string>
 				<string>org.videolan.ogg-audio</string>
 				<string>org.xiph.ogg.vorbis</string>
 				<string>org.xiph.opus</string>

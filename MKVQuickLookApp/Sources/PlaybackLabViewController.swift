@@ -67,47 +67,11 @@ final class PlaybackLabViewController: NSViewController {
             status: "Waiting for a file."
         )
         previewContentView.attachRenderView(player.renderView)
-        previewContentView.playbackToggleHandler = { [weak self] in
-            guard let self else {
-                return
-            }
-
-            MediaPreviewPlayerSession.activate(self.player)
-            self.player.togglePlayback()
-        }
-        previewContentView.seekTrackingHandler = { [weak self] isTracking, interactionID in
-            guard let self else {
-                return
-            }
-
-            if isTracking {
-                PlaybackDiagnostics.log("[seek] lab-begin id=\(interactionID) t=\(PlaybackDiagnostics.timestampString())")
-                self.player.beginScrubbing(interactionID: interactionID)
-            } else {
-                PlaybackDiagnostics.log("[seek] lab-end id=\(interactionID) t=\(PlaybackDiagnostics.timestampString())")
-                self.player.endScrubbing(interactionID: interactionID)
-            }
-        }
-        previewContentView.seekHandler = { [weak self] position, isFinal, interactionID in
-            PlaybackDiagnostics.log("[seek] lab-change id=\(interactionID ?? 0) position=\(String(format: "%.4f", position)) final=\(isFinal) t=\(PlaybackDiagnostics.timestampString())")
-            self?.player.seek(to: position, isFinal: isFinal, interactionID: interactionID)
-        }
-        previewContentView.volumeHandler = { [weak self] volume, interactionID in
-            PlaybackDiagnostics.log("[volume] lab-change id=\(interactionID) target=\(volume) t=\(PlaybackDiagnostics.timestampString())")
-            self?.player.setVolume(volume, interactionID: interactionID)
-        }
-
-        player.playbackStateDidChange = { [weak self] state in
-            self?.previewContentView.updatePlaybackState(state)
-        }
-        player.playbackMetricsDidChange = { [weak self] metrics in
-            self?.previewContentView.updatePlaybackMetrics(metrics)
-        }
-        player.videoPresentationSizeDidChange = { [weak self] size in
-            self?.previewContentView.updateVideoPresentationSize(size)
-        }
-        player.videoOutputVisibilityDidChange = { [weak self] isVisible in
-            self?.previewContentView.setVideoOutputVisible(isVisible)
-        }
+        PreviewPlayerBinding.routeControls(
+            of: previewContentView,
+            to: { [weak self] in self?.player },
+            logContext: "lab"
+        )
+        PreviewPlayerBinding.forwardUpdates(from: player, to: previewContentView)
     }
 }

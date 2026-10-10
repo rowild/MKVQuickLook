@@ -76,6 +76,7 @@ private final class PlayPauseOverlayView: NSView {
 
     private let iconCircle = NSView()
     private let iconView = NSImageView()
+    private var isShowingPause = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -100,6 +101,8 @@ private final class PlayPauseOverlayView: NSView {
         iconView.contentTintColor = .white
         iconView.image = NSImage(systemSymbolName: "play.fill", accessibilityDescription: "Play")
         iconView.translatesAutoresizingMaskIntoConstraints = false
+        // The overlay itself is the accessible button; the icon would only repeat its label.
+        iconView.setAccessibilityElement(false)
 
         addSubview(iconCircle)
         iconCircle.addSubview(iconView)
@@ -115,6 +118,7 @@ private final class PlayPauseOverlayView: NSView {
     }
 
     func setIcon(isPlaying: Bool) {
+        isShowingPause = isPlaying
         let name = isPlaying ? "pause.fill" : "play.fill"
         let description = isPlaying ? "Pause" : "Play"
         iconView.image = NSImage(systemSymbolName: name, accessibilityDescription: description)
@@ -132,6 +136,20 @@ private final class PlayPauseOverlayView: NSView {
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
     override var isOpaque: Bool { false }
+
+    // MARK: Accessibility
+
+    // Video mode hides the Play button, so this overlay is the only play/pause control.
+    // Exposing it as a button makes it usable with VoiceOver, Voice Control and
+    // Full Keyboard Access, which all act through the accessibility API.
+    override func isAccessibilityElement() -> Bool { true }
+    override func accessibilityRole() -> NSAccessibility.Role? { .button }
+    override func accessibilityLabel() -> String? { isShowingPause ? "Pause" : "Play" }
+
+    override func accessibilityPerformPress() -> Bool {
+        clickHandler?()
+        return true
+    }
 }
 
 // MARK: - PreviewContentView
@@ -177,6 +195,8 @@ final class PreviewContentView: NSView {
     private var currentPlaybackState: MediaPreviewPlaybackState = .idle
     private var isVideoOutputVisible = false
     private var mediaKind: PreviewMediaKind = .video
+    // nil until the host sets a mode; the layout rules below then do nothing.
+    private var presentationMode: PreviewPresentationMode?
 
     // MARK: Testing accessors
 
@@ -204,6 +224,14 @@ final class PreviewContentView: NSView {
         volumeSlider.doubleValue
     }
 
+    var elapsedTimeTextForTesting: String {
+        elapsedTimeLabel.stringValue
+    }
+
+    var videoCanvasFrameForTesting: NSRect {
+        videoCanvasView.frame
+    }
+
     func setVolumeSliderValueForTesting(_ value: Double) {
         volumeSlider.doubleValue = value
     }
@@ -229,12 +257,6 @@ final class PreviewContentView: NSView {
     }
 
     // MARK: Mouse tracking (hover overlay)
-
-    override func updateTrackingAreas() {
-        super.updateTrackingAreas()
-        // Tracking area is set up once in configureView using .inVisibleRect,
-        // which handles automatic bounds updates — no manual refresh needed here.
-    }
 
     override func mouseEntered(with event: NSEvent) {
         guard !videoFrameView.isHidden else { return }
@@ -340,6 +362,8 @@ final class PreviewContentView: NSView {
     }
 
     func setPresentationMode(_ mode: PreviewPresentationMode) {
+        presentationMode = mode
+
         switch mode {
         case .compact:
             videoFrameView.isHidden = true
@@ -371,8 +395,9 @@ final class PreviewContentView: NSView {
             statusLabel.isHidden = false
             bufferingNoteLabel.isHidden = false
             badgeLabel.isHidden = false
-            placeholderLabel.isHidden = false
-            placeholderLabel.stringValue = "Preparing video surface..."
+            // This runs on every layout pass, so the placeholder follows the playback
+            // state instead of being forced visible over a playing video.
+            refreshPlaceholderVisibility()
             titleLabel.font = .systemFont(ofSize: 28, weight: .semibold)
             subtitleLabel.font = .systemFont(ofSize: 14, weight: .medium)
             titleLabel.maximumNumberOfLines = 0
@@ -707,9 +732,7 @@ final class PreviewContentView: NSView {
     }
 
     private func refreshLayoutForCurrentMode() {
-        let isExpanded = compactHintLabel.isHidden
-
-        if isExpanded {
+        if presentationMode == .expanded {
             let isAudioOnly = mediaKind == .audioOnly
             videoFrameView.isHidden = isAudioOnly
             badgeLabel.isHidden = isAudioOnly
