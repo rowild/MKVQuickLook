@@ -55,8 +55,13 @@ jobs:
             exit 1
           fi
 
-          # Only this version's CHANGELOG section; fails if the section is missing.
-          ./scripts/changelog-section.sh "$TAG_NAME" > release-notes.md
+          # Only this version's CHANGELOG section (fails if it is missing), followed by the
+          # third-party notices: the LGPL source offer for VLCKit belongs next to the download.
+          {
+            ./scripts/changelog-section.sh "$TAG_NAME"
+            printf '\n---\n\n'
+            cat THIRD_PARTY_NOTICES.md
+          } > release-notes.md
 
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
             gh release upload "$TAG_NAME" "$DMG_PATH" --clobber

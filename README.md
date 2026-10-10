@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.10` (`build 11`)
+Version: `0.1.11` (`build 12`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -20,6 +20,12 @@ This app is currently distributed as an ad hoc signed DMG build and is **not not
 - macOS Gatekeeper may warn when users open it for the first time.
 - That is expected for the current release process.
 - Users may need to open it via Finder context menu or allow it in System Settings after the first launch attempt.
+
+## License
+
+MKVQuickLook's own source code is licensed under the MIT License (`LICENSE`).
+
+The app bundles `VLCKit` 3.7.2 (VLC 3.0.23), licensed under the GNU LGPL 2.1 or later. [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) lists the exact versions, the links to the corresponding source code, and how to replace `VLCKit` with a modified build. The app ships `LICENSE`, `VLCKit-COPYING.txt` and `THIRD_PARTY_NOTICES.md` in `Contents/Resources` and shows them under Settings → License. Every GitHub release repeats the notices in its release notes.
 
 ## Current Status
 
@@ -89,6 +95,8 @@ This means the shipped app is self-contained with respect to the playback backen
 - `project.yml`: XcodeGen spec
 - `MKVQuickLook.xcodeproj`: generated Xcode project
 - `CHANGELOG.md`: versioned change history
+- `LICENSE`: MIT license of MKVQuickLook's own code
+- `THIRD_PARTY_NOTICES.md`: VLCKit license, exact source code, replacement instructions
 - `scripts/bootstrap-vlckit.sh`: downloads the pinned official VideoLAN binary package
 - `Vendor/`: local dependency install location created by the bootstrap script
 
@@ -174,8 +182,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.10`.
-5. Set the release title, for example `v0.1.10`.
+4. Create or select a tag such as `v0.1.11`.
+5. Set the release title, for example `v0.1.11`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -184,12 +192,12 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.10
-git push origin v0.1.10
+git tag v0.1.11
+git push origin v0.1.11
 
-gh release create v0.1.10 dist/MKVQuickLook-v0.1.10.dmg \
-  --title "v0.1.10" \
-  --notes-file <(./scripts/changelog-section.sh v0.1.10)
+gh release create v0.1.11 dist/MKVQuickLook-v0.1.11.dmg \
+  --title "v0.1.11" \
+  --notes-file <({ ./scripts/changelog-section.sh v0.1.11; printf '\n---\n\n'; cat THIRD_PARTY_NOTICES.md; })
 ```
 
 `scripts/changelog-section.sh` prints only the `CHANGELOG.md` section for that version.
@@ -208,14 +216,15 @@ Behavior:
 - it builds the DMG with `./scripts/build-release-dmg.sh`
 - it creates or updates the GitHub Release for that tag
 - it uses only that version's `CHANGELOG.md` section as release notes, and fails if the section is missing
+- it appends `THIRD_PARTY_NOTICES.md` to the release notes, so the source code offer for `VLCKit` sits next to the download
 - it uploads the generated DMG as a release asset
 
 Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.10
-git push origin v0.1.10
+git tag v0.1.11
+git push origin v0.1.11
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.

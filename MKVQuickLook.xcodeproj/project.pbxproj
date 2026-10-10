@@ -33,6 +33,7 @@
 		6450D4447C4CFF72219E9E61 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 23AFE1F7AAE3D67F7A785BE9 /* CoreMedia.framework */; };
 		66067441F662E5EFEC20732D /* PreviewContentViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B71CBFD1CF0D8D544878F7E3 /* PreviewContentViewTests.swift */; };
 		698D780C180587F3778C0CCE /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1884C5B428369DD10604A5FC /* QuartzCore.framework */; };
+		6A3B75FDCCCB960C9A00BDD3 /* THIRD_PARTY_NOTICES.md in Resources */ = {isa = PBXBuildFile; fileRef = 5A4A824FC4D12FF3E21D5E4D /* THIRD_PARTY_NOTICES.md */; };
 		6B1B532FBC53989612DEB6CA /* PreviewPlaybackLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DDAFF34D7EFA585F7C3E7F /* PreviewPlaybackLifecycle.swift */; };
 		6D165547EEAFA91EFA14384C /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2C626BD2FE4D67060500BD09 /* AudioToolbox.framework */; };
 		6F5EE59479129A1045557600 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1884C5B428369DD10604A5FC /* QuartzCore.framework */; };
@@ -43,6 +44,7 @@
 		904DAA5E391982B8C176884E /* MediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9555F7EA3CD226932F56DAAE /* MediaPreviewPlayer.swift */; };
 		91F8123782F4B2E9DB5F605D /* PreviewMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBFF00EB96786F2F91B23B6 /* PreviewMetadata.swift */; };
 		95E2250B66D9D524F0B0EA78 /* PreviewPlaybackLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8DDAFF34D7EFA585F7C3E7F /* PreviewPlaybackLifecycle.swift */; };
+		98DB83AB8D35CEC13C4E1D6E /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 31027E1E6169DC8C0742B58B /* LICENSE */; };
 		98E5D4AFCD2BFCFCC9A04393 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B19D587EF5533CB9FA05EBFD /* CoreGraphics.framework */; };
 		9C6956BF42CEC54E93DE21E4 /* AppStatusViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E78A20ACD8AECE98CB1DFA53 /* AppStatusViewModel.swift */; };
 		9E318696532BB1FD7D431823 /* MediaPreviewPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9555F7EA3CD226932F56DAAE /* MediaPreviewPlayer.swift */; };
@@ -131,12 +133,14 @@
 		2C626BD2FE4D67060500BD09 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		2F35CE5184F659D5E453EBED /* PlaybackLabViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackLabViewController.swift; sourceTree = "<group>"; };
 		302F0A0259C5144EFA8FEDAA /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
+		31027E1E6169DC8C0742B58B /* LICENSE */ = {isa = PBXFileReference; path = LICENSE; sourceTree = "<group>"; };
 		343ADEF5139BDB0C75BC64E5 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		3F02863FF64BFC509D849AB5 /* MKVQuickLookApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MKVQuickLookApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		40C73021684F36F46E4F3AE6 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
 		48A02425AF63A692B683A28A /* MediaPreviewPlayerSessionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPreviewPlayerSessionTests.swift; sourceTree = "<group>"; };
 		53262920855AB9A50B5556EB /* libc++.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = "libc++.tbd"; path = "usr/lib/libc++.tbd"; sourceTree = SDKROOT; };
 		552D8A08FF68DAAA9471E2A7 /* VLCKit-COPYING.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "VLCKit-COPYING.txt"; sourceTree = "<group>"; };
+		5A4A824FC4D12FF3E21D5E4D /* THIRD_PARTY_NOTICES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = THIRD_PARTY_NOTICES.md; sourceTree = "<group>"; };
 		5C6820EDD7105300E0B3C6FE /* MainWindowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowView.swift; sourceTree = "<group>"; };
 		71B770A4F3058220E670AE4D /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		82538038139633F4454BF3B8 /* VideoLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLayout.swift; sourceTree = "<group>"; };
@@ -298,6 +302,8 @@
 		4BF314ACB0525AA89C22BE82 = {
 			isa = PBXGroup;
 			children = (
+				31027E1E6169DC8C0742B58B /* LICENSE */,
+				5A4A824FC4D12FF3E21D5E4D /* THIRD_PARTY_NOTICES.md */,
 				23BF9D444FCF9D934CE75334 /* MKVQuickLookApp */,
 				AAA2339253BF36B5FFDBEFD1 /* MKVQuickLookPreviewExtension */,
 				AE8480E922CBD140747FCAFF /* Shared */,
@@ -454,6 +460,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				98DB83AB8D35CEC13C4E1D6E /* LICENSE in Resources */,
+				6A3B75FDCCCB960C9A00BDD3 /* THIRD_PARTY_NOTICES.md in Resources */,
 				BE5C8DF61FA046A55278720C /* VLCKit-COPYING.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -618,7 +626,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -631,7 +639,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.10;
+				MARKETING_VERSION = 0.1.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -792,7 +800,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -811,7 +819,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 0.1.10;
+				MARKETING_VERSION = 0.1.11;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

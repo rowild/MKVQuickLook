@@ -18,7 +18,7 @@ struct MainWindowView: View {
                     Text("Version: \(viewModel.appVersion)")
                     Text("Embedded extensions: \(viewModel.embeddedExtensionNames.joined(separator: ", ").ifEmpty("None detected"))")
                     Text("Playback backend: \(viewModel.playbackBackend)")
-                    Text("Backend distribution: bundled inside the app extension")
+                    Text("Backend distribution: bundled inside the app; the Quick Look extension loads it from there")
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

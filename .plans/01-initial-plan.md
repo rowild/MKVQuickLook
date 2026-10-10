@@ -2,8 +2,8 @@
 
 Version snapshot:
 
-- release version: `0.1.10`
-- build number: `11`
+- release version: `0.1.11`
+- build number: `12`
 - snapshot date: `2026-10-10`
 
 ## Goal
@@ -892,6 +892,25 @@ Rule:
 - `testEveryBinaryCanResolveItsVLCKitLoadPath` resolves the real `LC_LOAD_DYLIB` entries of the app and the extension; it fails on the broken layout (verified)
 - the extension's reference is rewritten by `scripts/link-extension-to-app-vlckit.sh` (build step, fails the build on an unexpected reference); `scripts/verify-vlckit-load-paths.sh` gates install and release
 - after any bundle-layout change, run the runtime check: `qlmanage -p example-videos/BeachDrone-AV1.webm` with `log stream` on the extension's subsystem, and look for new `MKVQuickLookPreviewExtension*.ips` crash reports
+
+### 23. Licensing And Mistakes During The 0.1.11 Work
+
+What was missing until 0.1.11:
+
+- the repository had no license; MKVQuickLook's own code is now MIT (`LICENSE`, chosen by the maintainer)
+- the LGPL source offer for VLCKit was missing from the download; `THIRD_PARTY_NOTICES.md` now names the exact binary package and the corresponding source (VLCKit tag `3.7.2` = commit `3e42ae47…`; VLC 3.0.x commit `79128878…` plus VLCKit's 46 `libvlc/patches`), ships in the app, and is appended to every release's notes
+- the binary's own VLC version string (`3.0.23-2-46-gc0cbd9dbbd`) is a local commit after the patches; it does not exist upstream, so it must not be used as a source link
+
+Rules:
+
+- when VLCKit is updated (`scripts/bootstrap-vlckit.sh`), update `THIRD_PARTY_NOTICES.md` and `SettingsView.vlckitSourceURL` in the same change; read the pinned VLC commit from `TESTEDHASH` in VLCKit's `buildMobileVLCKit.sh` at the new tag
+- old VideoLAN notes may be outdated; check module licenses in the VLC source of the exact commit
+
+Mistakes that happened:
+
+- the Settings window had a fixed height of 420 pt while its content needed about 550 pt, so it was cut off since an unknown release; nobody noticed. Measure with `NSHostingView(rootView:).fittingSize`; SwiftUI's `ImageRenderer` and `cacheDisplay` cannot draw `GroupBox` contents, so their images prove nothing
+- the main window kept saying VLCKit was "bundled inside the app extension" after 0.1.10 moved it; after an architecture change, search the UI text for the old wording
+- in zsh, `"$t:scripts/x.sh"` applies the `:s` history modifier to `$t`; `git show` then received only the tag and printed a whole commit. Write `"${t}:path"`
 
 ## Recommended Debug Workflow For Future Changes
 

@@ -72,6 +72,20 @@ final class BundleMetadataTests: XCTestCase {
         XCTAssertTrue(licenseText.contains("GNU LESSER GENERAL PUBLIC LICENSE"))
     }
 
+    // The MIT license requires its notice in every copy of the software, and the LGPL
+    // offer for VLCKit's source must travel with the app. Both files must ship
+    // unchanged from the repository.
+    func testBuiltAppShipsProjectLicenseAndThirdPartyNotices() throws {
+        let resources = try builtAppURL().appendingPathComponent("Contents/Resources")
+        let repositoryRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+
+        for name in ["LICENSE", "THIRD_PARTY_NOTICES.md"] {
+            let shipped = try Data(contentsOf: resources.appendingPathComponent(name))
+            let original = try Data(contentsOf: repositoryRoot.appendingPathComponent(name))
+            XCTAssertEqual(shipped, original, "\(name) in the built app differs from the repository")
+        }
+    }
+
     // VLCKit is about 79 MB. The app embeds it once; the extension's reference is
     // rewritten after linking to load the app's copy (see project.yml). Together with
     // the load-path test below this pins down "one copy, and everything can load it".

@@ -35,8 +35,7 @@ struct AppStatusViewModel {
             "In Finder, select a supported file and press Space to invoke Quick Look.",
             "If Finder keeps using a stale preview, run qlmanage -r and reopen Finder.",
             "This app is not notarized. Gatekeeper may warn the first time you open it on another Mac.",
-            "The Renderer Lab window plays files with the same player that the Quick Look extension uses.",
-            "VLCKit is licensed under the LGPL 2.1. The license text ships inside the app at Contents/Resources/VLCKit-COPYING.txt."
+            "The Renderer Lab window plays files with the same player that the Quick Look extension uses."
         ]
     }
 }

@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+## 0.1.11 - 2026-10-10
+
+### Added
+
+- `LICENSE`: MKVQuickLook's own code is released under the MIT License. The repository had no license before.
+- `THIRD_PARTY_NOTICES.md`: VLCKit 3.7.2 (VLC 3.0.23) under the LGPL 2.1 or later, with the exact binary package, the corresponding source code (VLCKit tag `3.7.2`, commit `3e42ae47…`; VLC 3.0.x commit `79128878…` plus VLCKit's `libvlc/patches`), and how to replace VLCKit and re-sign the app (verified on a copy of the app).
+- The app ships `LICENSE` and `THIRD_PARTY_NOTICES.md` next to `VLCKit-COPYING.txt` in `Contents/Resources` (a bundle test compares them with the repository files). Settings has a new "License" section with a link to the VLCKit source code and a button that shows the license files in Finder.
+- GitHub release notes append `THIRD_PARTY_NOTICES.md` after the version's CHANGELOG section.
+
+### Fixed
+
+- The Settings window was fixed at 420 pt, but its content needed about 550 pt, so the lower sections were cut off. The window now takes the height of its content.
+- The main window still said VLCKit was "bundled inside the app extension"; since 0.1.10 it is bundled inside the app, and the extension loads it from there.
+
+### Known Issues
+
+- This is a technical licensing review, not legal advice. Of VLCKit's 244 built-in VLC modules, the three that an old VideoLAN note still listed as GPL (`stream_out/transcode`, `stream_out/standard`, `access_output/http`) were checked in the VLC 3.0.x source and are LGPL-2.1-or-later; the others were not checked one by one.
+- The notices link to the source code at VideoLAN and its GitHub mirror; the source archives are not attached to the GitHub releases.
+- All Known Issues of 0.1.10 remain.
+
 ## 0.1.10 - 2026-10-10
 
 ### Changed
