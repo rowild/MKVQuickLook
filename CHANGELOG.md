@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 0.1.13 - 2026-10-11
+
+### Fixed
+
+- Rare crash of the Quick Look extension in `libvlc_event_send` (`EXC_BAD_ACCESS`), seen with 0.1.5 and 0.1.8 (Pitfall #25). Cause: a VLCKit 3.7.2 bug (its libvlc patch 0024, asynchronous stop). When a player is released while a play waits behind an asynchronous stop, VLCKit starts that playback during the release and then frees the player; the new playback sends its events into the freed player. The player now always sends a last stop just before it is released, which cancels the waiting play. A test program crashed within 20 rounds without this stop (3 of 3 runs) and ran 200 rounds without a crash with it (2 of 2 runs).
+- Release automation: the DMG step failed on GitHub on the first 0.1.12 run ("No space left on device"; a re-run worked). Without `-size`, `hdiutil` estimates the image size, and the estimate was too small for VLCKit. `scripts/build-release-dmg.sh` now passes the folder's apparent size plus 20% and 20 MB.
+
+### Tests
+
+- New smoke test: release a player right after stop and play, 40 times. Without the fix it crashed the test process in `libvlc_event_send`.
+- Checked by hand: Quick Look in Finder (maintainer, 2026-10-11: quick switching, pause and play, closing during playback), `qlmanage -p` with the extension's log, no new crash reports; 3 × 40 stress cycles without a hang; the DMG script locally (a too-small `-size` gives the exact GitHub error; the new size gives a valid DMG).
+
+### Known Issues
+
+- The crash was rare in normal use (2 reports), so the fix is proven by the reproduction and the test, not yet by long use. The same is true for the freeze fix of 0.1.12.
+- The release workflow builds with Xcode 16.2 (Swift 6.0); local development uses Xcode 27. The new `StopBeforeRelease` code is first compiled with Swift 6.0 by the release run.
+- All other Known Issues of 0.1.12 remain.
+
 ## 0.1.12 - 2026-10-11
 
 ### Fixed

@@ -66,6 +66,28 @@ final class RendererSmokeTests: XCTestCase {
         )
     }
 
+    // VLCKit bug: when a player is released while a play waits behind an asynchronous
+    // stop, VLCKit starts that playback during the release and then frees the player;
+    // the new playback sends its events into freed memory, and the process crashes in
+    // `libvlc_event_send` (Pitfall #25). Without the fix this crashed within 20 rounds.
+    func testReleasingAPlayerRightAfterStopAndPlayDoesNotCrash() throws {
+        // This sample's audio track is digitally silent, so the test makes no sound.
+        let url = try sampleURL(named: "BeachDrone-AV1.webm")
+        for _ in 0..<40 {
+            autoreleasepool {
+                let player = VLCKitMediaPreviewPlayer()
+                player.loadMedia(from: url)
+                player.play()
+                RunLoop.current.run(until: Date().addingTimeInterval(0.12))
+                player.stop()
+                // The previous file is still closing, so this play has to wait.
+                player.loadMedia(from: url)
+                player.play()
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.03))
+        }
+    }
+
     // The player must match the volume slider: every new preview starts at 35%.
     func testNewPlayerStartsAt35PercentVolume() {
         XCTAssertEqual(VLCKitMediaPreviewPlayer().volumeForTesting, 35)

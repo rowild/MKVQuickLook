@@ -2,8 +2,8 @@
 
 Version snapshot:
 
-- release version: `0.1.12`
-- build number: `13`
+- release version: `0.1.13`
+- build number: `14`
 - snapshot date: `2026-10-11`
 
 ## Goal
@@ -936,6 +936,37 @@ Mistakes that happened:
 - in zsh, `log` is a builtin; use `/usr/bin/log`. `PlaybackDiagnostics` logs at debug level, so `log stream` needs `--level debug`
 - `VLCMediaPlayer.audio.volume` returns -1, and setting it does nothing, while the player is stopped: there is no audio output until the next play
 
+### 25. VLCKit Crashes When A Player Is Released While A Play Waits (fixed in 0.1.13)
+
+What happened:
+
+- two crash reports of the extension (0.1.5 on 2026-10-06, 0.1.8 on 2026-10-10): `EXC_BAD_ACCESS` at address 0 in `libvlc_event_send + 72`; the backtrace showed only `thread_start`, because `libvlc_event_send` does not set up a frame pointer
+- the registers named the caller: a jump-table target inside `input_event_changed` (`lib/media_player.c`) for the events `libvlc_MediaPlayerOpening` (0x102) and `libvlc_MediaPlayerPlaying` (0x104), and the player's event list held garbage: an input thread that had just started sent an event to a freed player
+
+Root cause:
+
+- VLCKit's `-stop` calls `libvlc_media_player_stop_async`, and `-setMedia:` calls `libvlc_media_player_set_media_async` (patch `0024-lib-media_player-add-stop-set_media-async-support.patch`). The old input then closes on the player's worker thread
+- a `play` while that close is still running only sets `worker.open_next`; the worker starts the new input after the close
+- `libvlc_media_player_destroy` does not clear `open_next`. The worker starts the new input during the release, its callbacks still point to the player, and the player is freed after `vlc_join`
+- `stop` (`set_stopped_state`) clears `open_next`
+
+Fix:
+
+- `VLCKitMediaPreviewPlayer` owns a small `StopBeforeRelease` object whose `deinit` calls `stop` on the `VLCMediaPlayer`, so a stop is always the last call before the release. A plain class does it, because a `@MainActor` class's `deinit` cannot use the non-Sendable `VLCMediaPlayer` in Swift 6.0
+- measured with a test program (play, stop, set media, play, release): crash within 20 rounds without the stop (3 of 3 runs), 200 rounds without a crash with it (2 of 2 runs); `RendererSmokeTests.testReleasingAPlayerRightAfterStopAndPlayDoesNotCrash` crashed the test process before the fix
+
+Rules:
+
+- never release a `VLCMediaPlayer` without a stop as its last call
+- a crash report with only one or two frames is not the end: look up the registers (`image lookup -a`) in the VLCKit binary, which has symbols
+
+### 26. The DMG Step Can Fail On GitHub With "No space left on device"
+
+- the first 0.1.12 release run failed in `hdiutil create`: "could not access /Volumes/MKVQuickLook/.../VLCKit - No space left on device"; the tests had passed, and a re-run worked
+- without `-size`, `hdiutil` estimates the image size from the folder; the estimate was too small for the 82 MB VLCKit binary. A local run with `-size 30m` gives the same message
+- since 0.1.13, `scripts/build-release-dmg.sh` passes the folder's apparent size (`du -sAm`) plus 20% and 20 MB
+- rule: when a release run fails after the tests passed, read the failed step's log before a re-run; a re-run of the same tag is fine, a new commit needs a new tag
+
 ## Recommended Debug Workflow For Future Changes
 
 When something breaks, use this order:
@@ -990,7 +1021,7 @@ Tests that must not be removed (one file per topic; shared spies and helpers liv
 - `Tests/PreviewPlayerBindingTests.swift` (player/view wiring shared by the extension and the Renderer Lab)
 - `Tests/MediaPreviewPlayerSessionTests.swift` (only one preview plays)
 - `Tests/VLCEngineConfigurationTests.swift` (read-only VLC settings file and VLCKit start options)
-- `Tests/RendererSmokeTests.swift` (real VLCKit playback, VLC refuses to save its settings, 35% start volume; local samples; skipped in CI)
+- `Tests/RendererSmokeTests.swift` (real VLCKit playback, VLC refuses to save its settings, 35% start volume, release right after stop and play; local samples; skipped in CI)
 
 ## Current Status
 
@@ -1025,7 +1056,7 @@ Added in 0.1.9:
 
 Found during the 0.1.12 work:
 
-- rare VLCKit crash in `libvlc_event_send` (`EXC_BAD_ACCESS`) while a player shuts down; seen in the extension with 0.1.5 (2026-10-06) and 0.1.8 (2026-10-10); not investigated
+- rare VLCKit crash in `libvlc_event_send` (`EXC_BAD_ACCESS`) while a player shuts down; seen in the extension with 0.1.5 (2026-10-06) and 0.1.8 (2026-10-10); cause found, reproduced and fixed in 0.1.13 (Pitfall #25); not yet confirmed by long use
 
 ## Backlog
 

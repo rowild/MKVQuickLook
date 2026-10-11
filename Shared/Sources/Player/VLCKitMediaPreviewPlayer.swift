@@ -18,6 +18,7 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
 
     private let videoView: VLCVideoView
     private let mediaPlayer: VLCMediaPlayer
+    private let mediaPlayerReleaseGuard: StopBeforeRelease
     // VLCMediaPlayer does not keep the VLCMedia object we hand it alive, and its
     // `media` getter returns a different wrapper object. Keep our own reference so the
     // parse delegate callback arrives and can be matched to the current file.
@@ -45,7 +46,9 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         self.renderView = videoView
         // Before the first VLCKit object: VLCKit reads its options only once.
         VLCEngineConfiguration.applyOnce()
-        self.mediaPlayer = VLCMediaPlayer()
+        let mediaPlayer = VLCMediaPlayer()
+        self.mediaPlayer = mediaPlayer
+        self.mediaPlayerReleaseGuard = StopBeforeRelease(mediaPlayer)
 
         super.init()
 
@@ -348,6 +351,24 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
 
     func saveSnapshot(to url: URL, width: Int = 0, height: Int = 0) {
         mediaPlayer.saveVideoSnapshot(at: url.path, withWidth: Int32(width), andHeight: Int32(height))
+    }
+}
+
+/// VLCKit 3.7.2 bug (its libvlc patch 0024, asynchronous stop): when a player is
+/// released while a play waits behind an asynchronous stop, VLCKit starts that
+/// playback during the release and then frees the player. The new playback sends its
+/// events into the freed player, and the process crashes in `libvlc_event_send`.
+/// A stop as the last call cancels the waiting play. This owner sends it, because the
+/// player's @MainActor deinit cannot use the non-Sendable VLCMediaPlayer in Swift 6.0.
+private final class StopBeforeRelease {
+    private let mediaPlayer: VLCMediaPlayer
+
+    init(_ mediaPlayer: VLCMediaPlayer) {
+        self.mediaPlayer = mediaPlayer
+    }
+
+    deinit {
+        mediaPlayer.stop()
     }
 }
 

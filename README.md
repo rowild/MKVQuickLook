@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.12` (`build 13`)
+Version: `0.1.13` (`build 14`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -48,7 +48,7 @@ The app bundles `VLCKit` 3.7.2 (VLC 3.0.23), licensed under the GNU LGPL 2.1 or 
 - **Routing depends on each Mac.** Quick Look picks a previewer by the type identifier macOS resolves for a file. Other installed apps can declare their own identifiers for `.ogg`, `.opus` or `.ogv`. This release covers the identifiers known so far (`org.xiph.ogg-audio`, `org.xiph.ogg-video`, and others). If a supported file still shows Apple's generic preview, please report the output of `mdls -name kMDItemContentType <file>`.
 - **Sound can continue after switching files.** When Finder switches from an MKVQuickLook preview to a file that another previewer shows (`.mp4`, `.mov`, `.avi`), Finder does not tell the extension. In column view, or with the preview pane open, the old preview stops anyway. In Gallery view, and in list or icon view without the preview pane, it keeps playing until Finder closes it.
 - **Rare freeze: cause removed in 0.1.12, not yet proven in long use.** Up to 0.1.11, VLCKit could rarely freeze the extension while it saved VLC's settings. Since 0.1.12 the VLC engine uses its own read-only settings file, so VLC no longer saves. If Quick Look still stops showing these files, open Activity Monitor, quit the process `MKVQuickLookPreviewExtension`, and please report it. macOS starts a new one for the next preview.
-- **Rare crash.** VLCKit can, rarely, crash while it shuts a player down (seen twice). macOS starts a new extension process for the next preview.
+- **Rare crash: fixed in 0.1.13, not yet proven in long use.** Up to 0.1.12, VLCKit could crash the extension when a preview closed right after a stop and a new start (seen twice). The cause is found and reproduced, and the fix is tested. If it still happens, macOS starts a new extension process for the next preview; please report it.
 - **Not notarized.** See "Gatekeeper" above.
 
 ## Playback Delays
@@ -185,8 +185,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.12`.
-5. Set the release title, for example `v0.1.12`.
+4. Create or select a tag such as `v0.1.13`.
+5. Set the release title, for example `v0.1.13`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -195,12 +195,12 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.12
-git push origin v0.1.12
+git tag v0.1.13
+git push origin v0.1.13
 
-gh release create v0.1.12 dist/MKVQuickLook-v0.1.12.dmg \
-  --title "v0.1.12" \
-  --notes-file <({ ./scripts/changelog-section.sh v0.1.12; printf '\n---\n\n'; cat THIRD_PARTY_NOTICES.md; })
+gh release create v0.1.13 dist/MKVQuickLook-v0.1.13.dmg \
+  --title "v0.1.13" \
+  --notes-file <({ ./scripts/changelog-section.sh v0.1.13; printf '\n---\n\n'; cat THIRD_PARTY_NOTICES.md; })
 ```
 
 `scripts/changelog-section.sh` prints only the `CHANGELOG.md` section for that version.
@@ -226,8 +226,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.12
-git push origin v0.1.12
+git tag v0.1.13
+git push origin v0.1.13
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.

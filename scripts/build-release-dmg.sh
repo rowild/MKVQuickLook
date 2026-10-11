@@ -65,9 +65,14 @@ mkdir -p "$DIST_DIR"
 rm -f "$DMG_PATH"
 
 echo "==> Creating DMG"
+# Without -size, hdiutil estimates the image size. On the GitHub runner that estimate
+# was once too small for VLCKit ("No space left on device", first 0.1.12 run). Use the
+# apparent size of the folder plus headroom instead.
+STAGE_MB="$(du -sAm "$STAGE_DIR" | cut -f1)"
 hdiutil create \
   -volname "$PRODUCT_NAME" \
   -srcfolder "$STAGE_DIR" \
+  -size "$(( STAGE_MB + STAGE_MB / 5 + 20 ))m" \
   -ov \
   -format UDZO \
   "$DMG_PATH"
