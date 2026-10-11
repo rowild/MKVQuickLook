@@ -122,4 +122,24 @@ final class PreviewContentViewTests: XCTestCase {
 
         XCTAssertEqual(previewView.volumeSliderValueForTesting, 173)
     }
+
+    // VLC's own start volume (100%) is too loud for a preview. Every new preview starts
+    // at 35%, also after the user moved the slider in an earlier preview.
+    @MainActor
+    func testEveryNewPreviewStartsAt35PercentVolume() throws {
+        let previewView = PreviewContentView(frame: NSRect(x: 0, y: 0, width: 960, height: 720))
+        XCTAssertEqual(previewView.volumeSliderValueForTesting, 35)
+
+        previewView.setVolumeSliderValueForTesting(173)
+        previewView.apply(metadata: try PreviewMetadata(fileURL: URL(fileURLWithPath: #filePath)))
+        XCTAssertEqual(previewView.volumeSliderValueForTesting, 35)
+
+        previewView.setVolumeSliderValueForTesting(173)
+        previewView.applyPlaceholder(title: "t", subtitle: "s", details: "d", status: "s")
+        XCTAssertEqual(previewView.volumeSliderValueForTesting, 35)
+
+        previewView.setVolumeSliderValueForTesting(173)
+        previewView.apply(error: "e")
+        XCTAssertEqual(previewView.volumeSliderValueForTesting, 35)
+    }
 }

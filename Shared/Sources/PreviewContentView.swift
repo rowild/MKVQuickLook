@@ -177,7 +177,7 @@ final class PreviewContentView: NSView {
     private let elapsedTimeLabel = NSTextField(labelWithString: "0:00")
     private let remainingTimeLabel = NSTextField(labelWithString: "--:--")
     private let seekSlider = TrackingSlider(value: 0, minValue: 0, maxValue: 1, target: nil, action: nil)
-    private let volumeSlider = TrackingSlider(value: 100, minValue: 0, maxValue: 200, target: nil, action: nil)
+    private let volumeSlider = TrackingSlider(value: Double(MediaPreviewVolume.start), minValue: 0, maxValue: 200, target: nil, action: nil)
     private let volumeLabel = NSTextField(labelWithString: "Volume")
     private let controlsRow = NSStackView()
     private let badgeLabel = NSTextField(labelWithString: "MKVQuickLook / VLCKit")
@@ -294,7 +294,7 @@ final class PreviewContentView: NSView {
         playbackButton.isEnabled = true
         seekSlider.isEnabled = false
         volumeSlider.isEnabled = true
-        volumeSlider.doubleValue = 100
+        volumeSlider.doubleValue = Double(MediaPreviewVolume.start)
     }
 
     func setMediaKind(_ mediaKind: PreviewMediaKind) {
@@ -313,7 +313,7 @@ final class PreviewContentView: NSView {
         playbackButton.isEnabled = false
         seekSlider.isEnabled = false
         volumeSlider.isEnabled = false
-        volumeSlider.doubleValue = 100
+        volumeSlider.doubleValue = Double(MediaPreviewVolume.start)
         placeholderLabel.isHidden = false
         placeholderLabel.stringValue = "Choose a file to start the renderer lab."
     }
@@ -327,7 +327,7 @@ final class PreviewContentView: NSView {
         playbackButton.isEnabled = false
         seekSlider.isEnabled = false
         volumeSlider.isEnabled = false
-        volumeSlider.doubleValue = 100
+        volumeSlider.doubleValue = Double(MediaPreviewVolume.start)
         placeholderLabel.isHidden = false
         placeholderLabel.stringValue = "Playback failed"
     }

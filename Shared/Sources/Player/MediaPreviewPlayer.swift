@@ -11,6 +11,12 @@ enum MediaPreviewPlaybackState: Equatable {
     case failed(String)
 }
 
+enum MediaPreviewVolume {
+    /// Volume in percent (0...200) of every new preview. VLC's own default, 100%, is
+    /// too loud for a preview.
+    static let start = 35
+}
+
 struct MediaPreviewPlaybackMetrics: Equatable {
     let position: Float
     let isSeekable: Bool

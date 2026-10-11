@@ -2,9 +2,9 @@
 
 Version snapshot:
 
-- release version: `0.1.11`
-- build number: `12`
-- snapshot date: `2026-10-10`
+- release version: `0.1.12`
+- build number: `13`
+- snapshot date: `2026-10-11`
 
 ## Goal
 
@@ -859,7 +859,7 @@ Rule / current workaround:
 - Finder closes its column preview of the previous file at that moment; `MediaPreviewPlayerSession.previewDidClose` stops a playing preview of the same file
 - this needs a visible column preview or preview pane; Gallery view and list/icon view without the preview pane remain affected (documented limitation)
 
-### 20. VLCKit Can Deadlock While A Player Is Destroyed
+### 20. VLCKit Can Deadlock While It Saves VLC's Settings
 
 What happened:
 
@@ -867,11 +867,27 @@ What happened:
 - the final release of VLCKit objects can run on VLCKit's background release queues when the app drops its last reference while an event is still in flight (`VLCEventsHandler`)
 - reproduced 3 times, then 0 times in 10 alternating runs of the 0.1.7 and 0.1.8 player code; the trigger is not known, and it is not known whether the asynchronous parsing of 0.1.8 made it more likely
 
+Root cause (found 2026-10-10, fixed in 0.1.12):
+
+- VLCKit 3.7.2 calls `config_AutoSaveConfigFile` in `libvlc_media_release` (patch `0015-lib-save-configuration-after-playback-parse.patch`) and after every `input_Close` (patch `0024`); lldb showed it on VLCKit's release queue: `-[VLCMedia dealloc]` → `libvlc_media_release` → `config_AutoSaveConfigFile`
+- `config_AutoSaveConfigFile` read-locks `config_lock`; when settings changed, `config_SaveConfigFile` read-locks it again (VLC's comment: "this will get the read lock recursively. Ok."). A macOS `pthread_rwlock` with a waiting writer blocks that second read: deadlock
+- writers (`config_Put*`): the `auhal` audio output records `auhal-audio-device` when it closes, and it closes at every `stop` (`libvlc_media_player_stop` → `input_resource_ResetAout` → `aout_Destroy`), not only when the player is destroyed; `auhal` records `auhal-volume` at every volume change while `volume-save` is on (VLC's default)
+- VLC 3.0.x `src/config/file.c` is unchanged since 2017; newer VLCKit releases do not fix this
+
+Fix:
+
+- `VLCEngineConfiguration` gives VLCKit's shared library its own, empty, read-only settings file (`--config=<Application Support>/MKVQuickLook/vlcrc`). `config_SaveConfigFile` checks for a read-only file and returns before its second read lock ("configuration file is read-only"), so the deadlock cannot start. Measured: 12 play/stop cycles, 24 refused saves, both files unchanged
+- the options go through the `VLCParams` user default, which VLCKit reads once when it creates its shared library; the value replaces VLCKit's own defaults, so they are repeated. `VLCKitMediaPreviewPlayer.init` applies it before the first `VLCMediaPlayer`
+- `volume-save` stays on: with the read-only file it only keeps the last volume in memory. With `--no-volume-save`, VLC restarts at 100% after stop and play while the slider shows the user's value (measured)
+- a player pool would not help: the audio output closes at every stop anyway (measured with one reused player: 12 device writes in 12 cycles)
+
 Rule:
 
 - the stress program is not part of the repository; its shape: create a player, `loadMedia`, wait for the parse result, `stop`, release; 40 times in a row, with a hard time limit, and `sample <pid>` on a hang
 - run smoke tests with test time limits
 - treat any change to player creation, teardown or VLC object lifetime as integration-sensitive; repeat the stress run before and after
+- never let VLC use a writable settings file, and never let processes outside the sandbox use VLC's default path: that is VLC.app's file. `RendererSmokeTests.testVLCRefusesToSaveItsSettings` checks both
+- after a VLCKit update, re-check `config_SaveConfigFile` for the read-only check before the second read lock; if it is gone, the freeze comes back
 
 ### 21. Mistakes During The 0.1.9 Work
 
@@ -912,6 +928,14 @@ Mistakes that happened:
 - the main window kept saying VLCKit was "bundled inside the app extension" after 0.1.10 moved it; after an architecture change, search the UI text for the old wording
 - in zsh, `"$t:scripts/x.sh"` applies the `:s` history modifier to `$t`; `git show` then received only the tag and printed a whole commit. Write `"${t}:path"`
 
+### 24. Mistakes During The Freeze Fix
+
+- the agreed fix was a pool of players that are never destroyed, because the audio output was assumed to live as long as its player. A measurement before the build showed that it closes, and writes VLC's settings, at every stop. The plan changed to the read-only settings file. Rule: measure the trigger (lldb breakpoints on `config_PutPsz`, `config_PutInt`) before building a fix around it
+- `--no-volume-save` was part of the agreed fix; a measurement showed the volume jump to 100% after stop and play. It was dropped (maintainer decision)
+- the tests, the Renderer Lab and the stress programs ran outside the sandbox with VLC's default settings path, so they wrote VLC.app's `~/Library/Preferences/org.videolan.vlc/vlcrc` (last change by them: 2026-10-10 18:33, `auhal-volume=422`). Probes must pass `--config=<scratch file>`
+- in zsh, `log` is a builtin; use `/usr/bin/log`. `PlaybackDiagnostics` logs at debug level, so `log stream` needs `--level debug`
+- `VLCMediaPlayer.audio.volume` returns -1, and setting it does nothing, while the player is stopped: there is no audio output until the next play
+
 ## Recommended Debug Workflow For Future Changes
 
 When something breaks, use this order:
@@ -943,6 +967,7 @@ Core implementation:
 - `Shared/Sources/Player/PreviewPlayerBinding.swift`
 - `Shared/Sources/Player/PreviewPlaybackLifecycle.swift`
 - `Shared/Sources/Player/MediaPreviewPlayerSession.swift`
+- `Shared/Sources/Player/VLCEngineConfiguration.swift` (VLC start options; read-only settings file, Pitfall #20)
 
 Installation and registration:
 
@@ -960,11 +985,12 @@ Tests that must not be removed (one file per topic; shared spies and helpers liv
 - `Tests/BundleMetadataTests.swift` (plist routing, resolved type identifiers, shipped license, bundle layout)
 - `Tests/VideoLayoutTests.swift` (fit-box layout math)
 - `Tests/MediaKindTests.swift` (audio-only vs. video from extension and from VLC tracks)
-- `Tests/PreviewContentViewTests.swift` (placeholder, audio layout, accessibility, compact mode, volume slider)
+- `Tests/PreviewContentViewTests.swift` (placeholder, audio layout, accessibility, compact mode, volume slider and its 35% start)
 - `Tests/PreviewPlaybackLifecycleTests.swift` (when a preview loads, starts and stops)
 - `Tests/PreviewPlayerBindingTests.swift` (player/view wiring shared by the extension and the Renderer Lab)
 - `Tests/MediaPreviewPlayerSessionTests.swift` (only one preview plays)
-- `Tests/RendererSmokeTests.swift` (real VLCKit playback; local samples; skipped in CI)
+- `Tests/VLCEngineConfigurationTests.swift` (read-only VLC settings file and VLCKit start options)
+- `Tests/RendererSmokeTests.swift` (real VLCKit playback, VLC refuses to save its settings, 35% start volume; local samples; skipped in CI)
 
 ## Current Status
 
@@ -981,19 +1007,32 @@ The project now has:
 - asynchronous VLC parsing (no main-thread parse)
 - accessible video play/pause overlay
 - VLCKit LGPL license shipped inside the app
+- own read-only VLC settings file (no settings saves, VLC.app's file untouched)
+- 35% start volume for every new preview
 
 Known unresolved limitations (0.1.8):
 
 - routing depends on the type identifiers each Mac resolves; only the identifiers seen so far are covered
 - AVI with codecs AVFoundation cannot decode (DivX/MP3) gets no working preview while another app is the default `.avi` app; the host app cannot open files, so making it the default AVI app is not practical
 - (resolved in 0.1.10) VLCKit was embedded twice; it is now embedded once and the app is ~80 MB
-- not verified: a Finder preview pane larger than 720 × 440 pt counts as the expanded player and may autoplay with sound
+- accepted (maintainer decision, 2026-10-10): large previews outside the Space window (Gallery view, a preview pane larger than 720 × 440 pt) count as the expanded player and start playback, like the Quick Look window
 - the release workflow pins Xcode 16.2 (Swift 6.0); local development used Xcode 27 (Swift 6.4), so Swift 6.0 compatibility is only proven by the CI run
 
 Added in 0.1.9:
 
-- Gallery view, and list/icon view without the preview pane: switching to a file shown by another previewer leaves the previous preview playing until Finder closes it (Pitfall #19)
-- rare VLCKit teardown deadlock, trigger unknown (Pitfall #20)
+- Gallery view, and list/icon view without the preview pane: switching to a file shown by another previewer leaves the previous preview playing until Finder closes it (Pitfall #19; on the backlog)
+- rare VLCKit deadlock (Pitfall #20): cause found and removed in 0.1.12 (read-only VLC settings file); not yet confirmed by long use
+
+Found during the 0.1.12 work:
+
+- rare VLCKit crash in `libvlc_event_send` (`EXC_BAD_ACCESS`) while a player shuts down; seen in the extension with 0.1.5 (2026-10-06) and 0.1.8 (2026-10-10); not investigated
+
+## Backlog
+
+Not planned now (maintainer decision, 2026-10-10):
+
+- **Notarization.** The app is ad hoc signed, so Gatekeeper warns on other Macs. Notarizing needs a paid Apple Developer account and a Developer ID signature in `scripts/build-release-dmg.sh` and the release workflow.
+- **Sound after switching to another previewer in Gallery view, and in list or icon view without the preview pane.** Finder and Quick Look send the extension no signal in these cases (Pitfall #19). Low importance.
 
 ## Next Safe Improvements
 

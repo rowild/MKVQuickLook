@@ -8,3 +8,4 @@ example-videos/
 Vendor/VLCKit.xcframework/
 Vendor/VLCKit-COPYING.txt
 Vendor/VLCKit-NEWS.txt
+.serena/

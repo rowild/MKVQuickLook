@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 0.1.12 - 2026-10-11
+
+### Fixed
+
+- Rare freeze of the Quick Look extension (Pitfall #20). Cause: VLCKit 3.7.2 saves VLC's settings after every media release and every input close (its libvlc patches 0015 and 0024). That save reads VLC's settings lock twice. On macOS, a thread that waits to write the settings blocks the second read, and both threads wait forever. Writers are frequent: the audio output records its device when it closes at every stop, and a volume change records the volume. VLC skips the save before the second read when its settings file is read-only. MKVQuickLook's VLC engine now uses its own empty, read-only settings file (`Application Support/MKVQuickLook/vlcrc`; for the extension inside its sandbox container), passed with VLC's `--config` option through VLCKit's `VLCParams` user default.
+- The Renderer Lab and the tests (all processes outside the sandbox) read and wrote VLC.app's settings file, `~/Library/Preferences/org.videolan.vlc/vlcrc`, for example the last preview volume. They no longer touch it.
+
+### Changed
+
+- Every new preview, and the Renderer Lab, starts at 35% volume instead of 100%. The slider still goes from 0 to 200%. Within one preview, the volume you set stays after stop and play again.
+- Git ignores `.serena/` (a local code-tool cache). The plan file has a new Backlog section: notarization, and sound after switching to another previewer in Gallery view.
+
+### Tests
+
+- New: the settings file is created read-only; VLCKit gets the `--config` option and keeps its own default options; a real playback with a volume change and a stop makes VLC log "configuration file is read-only" and changes neither settings file; the player and the slider start at 35%.
+- Checked by hand: Quick Look in Finder (maintainer, 2026-10-11) and `qlmanage -p` with the extension's log; the sandboxed extension creates its read-only file in its container.
+
+### Known Issues
+
+- The freeze was rare (3 times in stress runs, never seen in normal use), so no test run can prove it is gone. The fix removes the lock pattern itself. Evidence: VLC's source code, lldb, the new smoke test, and 3 × 40 stress cycles without a hang.
+- Not fixed: a separate, rare VLCKit crash in `libvlc_event_send` (`EXC_BAD_ACCESS`) while a player shuts down; seen twice in the extension (0.1.5 on 2026-10-06, 0.1.8 on 2026-10-10). macOS starts a new extension process for the next preview.
+
 ## 0.1.11 - 2026-10-10
 
 ### Added

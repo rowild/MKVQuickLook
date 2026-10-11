@@ -43,6 +43,8 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
 
         self.videoView = videoView
         self.renderView = videoView
+        // Before the first VLCKit object: VLCKit reads its options only once.
+        VLCEngineConfiguration.applyOnce()
         self.mediaPlayer = VLCMediaPlayer()
 
         super.init()
@@ -50,7 +52,7 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
         mediaPlayer.delegate = self
         mediaPlayer.setVideoView(videoView)
         mediaPlayer.scaleFactor = 0
-        mediaPlayer.audio?.volume = 100
+        mediaPlayer.audio?.volume = Int32(MediaPreviewVolume.start)
         mediaPlayer.videoAspectRatio = nil
         mediaPlayer.videoCropGeometry = nil
         mediaPlayer.audio?.isMuted = false
@@ -337,6 +339,11 @@ final class VLCKitMediaPreviewPlayer: NSObject, MediaPreviewPlayer {
 
     var hasVisibleVideoOutput: Bool {
         mediaPlayer.hasVideoOut || videoView.hasVideo
+    }
+
+    /// VLC's current volume in percent; -1 while VLC has no audio output.
+    var volumeForTesting: Int {
+        Int(mediaPlayer.audio?.volume ?? -1)
     }
 
     func saveSnapshot(to url: URL, width: Int = 0, height: Int = 0) {

@@ -1,6 +1,6 @@
 # MKVQuickLook
 
-Version: `0.1.11` (`build 12`)
+Version: `0.1.12` (`build 13`)
 
 macOS host app plus Quick Look Preview Extension scaffold for:
 
@@ -38,6 +38,8 @@ The app bundles `VLCKit` 3.7.2 (VLC 3.0.23), licensed under the GNU LGPL 2.1 or 
 - full Quick Look preview autoplays; compact Finder preview remains summary-only
 - renderer, metadata, and UI regressions covered by automated tests
 - hover overlay play/pause on the video frame (like native Quick Look); VoiceOver, Voice Control and Full Keyboard Access can use it as a button
+- every new preview starts at 35% volume
+- the VLC engine uses its own read-only settings file; it never reads or changes the settings of the VLC app
 - seek and volume sliders jump immediately to click position
 
 ## Known Limitations
@@ -45,7 +47,8 @@ The app bundles `VLCKit` 3.7.2 (VLC 3.0.23), licensed under the GNU LGPL 2.1 or 
 - **AVI is not supported.** While another app, such as VLC, is the default app for `.avi`, Quick Look uses Apple's own previewer. On macOS 26 that previewer cannot play AVI files with DivX (MPEG-4 Part 2) video and MP3 audio.
 - **Routing depends on each Mac.** Quick Look picks a previewer by the type identifier macOS resolves for a file. Other installed apps can declare their own identifiers for `.ogg`, `.opus` or `.ogv`. This release covers the identifiers known so far (`org.xiph.ogg-audio`, `org.xiph.ogg-video`, and others). If a supported file still shows Apple's generic preview, please report the output of `mdls -name kMDItemContentType <file>`.
 - **Sound can continue after switching files.** When Finder switches from an MKVQuickLook preview to a file that another previewer shows (`.mp4`, `.mov`, `.avi`), Finder does not tell the extension. In column view, or with the preview pane open, the old preview stops anyway. In Gallery view, and in list or icon view without the preview pane, it keeps playing until Finder closes it.
-- **Rare freeze.** VLCKit can, rarely, deadlock while it shuts a player down. It was seen in stress tests, not yet in normal use. If Quick Look stops showing these files, open Activity Monitor and quit the process `MKVQuickLookPreviewExtension`. macOS starts a new one for the next preview.
+- **Rare freeze: cause removed in 0.1.12, not yet proven in long use.** Up to 0.1.11, VLCKit could rarely freeze the extension while it saved VLC's settings. Since 0.1.12 the VLC engine uses its own read-only settings file, so VLC no longer saves. If Quick Look still stops showing these files, open Activity Monitor, quit the process `MKVQuickLookPreviewExtension`, and please report it. macOS starts a new one for the next preview.
+- **Rare crash.** VLCKit can, rarely, crash while it shuts a player down (seen twice). macOS starts a new extension process for the next preview.
 - **Not notarized.** See "Gatekeeper" above.
 
 ## Playback Delays
@@ -182,8 +185,8 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 1. Open the GitHub repository.
 2. Click `Releases`.
 3. Click `Draft a new release`.
-4. Create or select a tag such as `v0.1.11`.
-5. Set the release title, for example `v0.1.11`.
+4. Create or select a tag such as `v0.1.12`.
+5. Set the release title, for example `v0.1.12`.
 6. Upload the DMG from `dist/`.
 7. Publish the release.
 
@@ -192,12 +195,12 @@ The downloadable DMG should be published as a GitHub Release asset, not as a tra
 If `gh` is installed:
 
 ```sh
-git tag v0.1.11
-git push origin v0.1.11
+git tag v0.1.12
+git push origin v0.1.12
 
-gh release create v0.1.11 dist/MKVQuickLook-v0.1.11.dmg \
-  --title "v0.1.11" \
-  --notes-file <({ ./scripts/changelog-section.sh v0.1.11; printf '\n---\n\n'; cat THIRD_PARTY_NOTICES.md; })
+gh release create v0.1.12 dist/MKVQuickLook-v0.1.12.dmg \
+  --title "v0.1.12" \
+  --notes-file <({ ./scripts/changelog-section.sh v0.1.12; printf '\n---\n\n'; cat THIRD_PARTY_NOTICES.md; })
 ```
 
 `scripts/changelog-section.sh` prints only the `CHANGELOG.md` section for that version.
@@ -223,8 +226,8 @@ Typical release flow:
 
 ```sh
 git push origin main
-git tag v0.1.11
-git push origin v0.1.11
+git tag v0.1.12
+git push origin v0.1.12
 ```
 
 That is the correct trigger model for this project. Releasing on every plain `git push` would be the wrong design.

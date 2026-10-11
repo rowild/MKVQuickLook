@@ -1,5 +1,6 @@
 import AppKit
 import CoreGraphics
+import VLCKit
 import XCTest
 
 @MainActor
@@ -63,6 +64,67 @@ final class RendererSmokeTests: XCTestCase {
             },
             "The play button did nothing after stop()"
         )
+    }
+
+    // The player must match the volume slider: every new preview starts at 35%.
+    func testNewPlayerStartsAt35PercentVolume() {
+        XCTAssertEqual(VLCKitMediaPreviewPlayer().volumeForTesting, 35)
+    }
+
+    // VLC must never save its settings: that save can freeze the process (Pitfall #20).
+    // VLC refuses the save when its settings file is read-only, and logs the refusal.
+    func testVLCRefusesToSaveItsSettings() throws {
+        continueAfterFailure = false
+        let player = VLCKitMediaPreviewPlayer()
+        let settingsFile = VLCEngineConfiguration.settingsFileURL
+        // Stops the test before playback, so VLC cannot write VLC.app's settings file.
+        let settingsBefore = try FileManager.default.attributesOfItem(atPath: settingsFile.path)
+        XCTAssertEqual((settingsBefore[.posixPermissions] as? NSNumber)?.intValue, 0o444)
+        let vlcAppSettings = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Preferences/org.videolan.vlc/vlcrc")
+        let vlcAppSettingsDateBefore = modificationDate(of: vlcAppSettings)
+
+        let errorLog = VLCErrorLog()
+        VLCLibrary.shared().loggers = [errorLog]
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 640, height: 360),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.contentView = player.renderView
+        window.orderFrontRegardless()
+        defer {
+            VLCLibrary.shared().loggers = nil
+            window.orderOut(nil)
+        }
+
+        // This sample's audio track is digitally silent, so the test makes no sound.
+        player.loadMedia(from: try sampleURL(named: "BeachDrone-AV1.webm"))
+        player.play()
+        XCTAssertTrue(
+            waitUntil(timeout: 10) {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                return player.hasVisibleVideoOutput
+            },
+            "No playback"
+        )
+        // Both change VLC's settings in memory: the volume, and the audio device that
+        // the audio output records when it closes at stop.
+        player.setVolume(20, interactionID: nil)
+        player.stop()
+
+        XCTAssertTrue(
+            waitUntil(timeout: 10) {
+                RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+                return errorLog.contains("configuration file is read-only")
+            },
+            "VLC did not refuse to save its settings"
+        )
+        let settingsAfter = try FileManager.default.attributesOfItem(atPath: settingsFile.path)
+        XCTAssertEqual(settingsAfter[.modificationDate] as? Date, settingsBefore[.modificationDate] as? Date)
+        XCTAssertEqual(settingsAfter[.size] as? NSNumber, settingsBefore[.size] as? NSNumber)
+        XCTAssertEqual(modificationDate(of: vlcAppSettings), vlcAppSettingsDateBefore, "VLC changed VLC.app's settings file")
     }
 
     func testLoadMediaReportsParsedVideoPresentationSize() throws {
@@ -212,6 +274,10 @@ final class RendererSmokeTests: XCTestCase {
         return url
     }
 
+    private func modificationDate(of url: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
+    }
+
     private func waitUntil(timeout: TimeInterval, condition: () -> Bool) -> Bool {
         let deadline = Date().addingTimeInterval(timeout)
         while Date() < deadline {
@@ -220,6 +286,21 @@ final class RendererSmokeTests: XCTestCase {
             }
         }
         return false
+    }
+}
+
+// Collects VLC's error messages. VLC calls it on its own threads.
+private final class VLCErrorLog: NSObject, VLCLogging, @unchecked Sendable {
+    var level: VLCLogLevel = .error
+    private let lock = NSLock()
+    private var messages: [String] = []
+
+    func handleMessage(_ message: String, logLevel level: VLCLogLevel, context: VLCLogContext?) {
+        lock.withLock { messages.append(message) }
+    }
+
+    func contains(_ text: String) -> Bool {
+        lock.withLock { messages.contains { $0.contains(text) } }
     }
 }
 
